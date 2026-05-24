@@ -10,6 +10,7 @@ RUN ./gradlew dependencies --no-daemon || true
 
 # 소스 복사 후 native 빌드
 COPY . .
+RUN chmod +x ./gradlew
 RUN ./gradlew nativeCompile --no-daemon
 
 # ===== Runtime stage =====

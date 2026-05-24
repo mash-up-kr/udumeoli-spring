@@ -93,3 +93,11 @@ detekt {
 	buildUponDefaultConfig = true
 	autoCorrect = false
 }
+
+graalvmNative {
+	binaries {
+		main {
+			imageName = 'udumeoli'
+		}
+	}
+}

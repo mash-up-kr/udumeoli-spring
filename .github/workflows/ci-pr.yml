@@ -1,0 +1,129 @@
+name: CI - Pull Request
+
+# 사전 준비: GitHub Repository > Issues > Labels 에서 'ready-to-build' 라벨을 미리 생성해두세요.
+# 트리거 방식
+#   1) PR에 "빌드 시작" 이라는 댓글을 달면 빌드 실행
+#   2) PR에 'ready-to-build' 라벨을 붙이면 빌드 실행 후 라벨 자동 제거
+#   3) Draft PR을 Ready for review 로 전환하면 빌드 실행
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request:
+    types: [labeled, ready_for_review]
+
+jobs:
+  # 댓글 트리거 빌드
+  build-on-comment:
+    name: PR 빌드 검증 (댓글)
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '빌드 시작') }}
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: PR 브랜치 확인
+        id: get_branch
+        run: |
+          PR_NUMBER=$(jq --raw-output .issue.number "$GITHUB_EVENT_PATH")
+          BRANCH_NAME=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER" | \
+            jq -r .head.ref)
+          echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
+
+      - name: Repository 접근
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.get_branch.outputs.branch }}
+
+      - name: JDK 21 셋팅
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: gradlew 실행 권한 부여
+        run: chmod +x ./gradlew
+
+      - name: 프로젝트 빌드
+        run: ./gradlew build -x test --build-cache --no-daemon
+
+      - name: 빌드 결과 댓글
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ job.status }}';
+            const message = status === 'success'
+              ? '✅ **빌드 성공** \n배포 준비 완료!'
+              : '❌ **빌드 실패** \n코드를 확인해주세요.';
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: message
+            });
+
+  # 라벨 또는 Ready for review 트리거 빌드
+  build-on-label-or-ready:
+    name: PR 빌드 검증 (라벨/Ready)
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' && (github.event.action == 'ready_for_review' || github.event.label.name == 'ready-to-build') }}
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Repository 접근
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: JDK 21 셋팅
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: gradlew 실행 권한 부여
+        run: chmod +x ./gradlew
+
+      - name: 프로젝트 빌드
+        run: ./gradlew build -x test --build-cache --no-daemon
+
+      - name: 빌드 결과 댓글
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ job.status }}';
+            const message = status === 'success'
+              ? '✅ **빌드 성공** \n배포 준비 완료!'
+              : '❌ **빌드 실패** \n코드를 확인해주세요.';
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: message
+            });
+
+      - name: 라벨 제거
+        if: ${{ always() && github.event.action == 'labeled' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                name: 'ready-to-build'
+              });
+            } catch (e) {}

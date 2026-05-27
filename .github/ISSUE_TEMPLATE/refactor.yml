@@ -1,0 +1,33 @@
+name: "♻️ 리팩토링"
+description: "코드 개선이나 리팩토링이 필요할 때 사용해주세요"
+labels: ["refactor"]
+assignees: []
+body:
+  - type: textarea
+    id: target
+    attributes:
+      label: 리팩토링 대상
+      description: 어떤 코드를 리팩토링하려는지 설명해주세요
+      placeholder: "예: UserService의 회원가입 로직이 하나의 메서드에 모두 들어있어 분리가 필요합니다"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: 리팩토링 사유
+      description: 왜 리팩토링이 필요한지 작성해주세요
+      placeholder: |
+        - 메서드가 너무 길어서 가독성이 떨어짐
+        - 중복 코드 존재
+        - 테스트하기 어려운 구조
+    validations:
+      required: true
+
+  - type: textarea
+    id: plan
+    attributes:
+      label: 개선 방향
+      description: 어떤 방식으로 개선할 계획인지 작성해주세요
+    validations:
+      required: true

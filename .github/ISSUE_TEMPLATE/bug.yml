@@ -1,0 +1,42 @@
+name: "🐛 버그 수정"
+description: "버그를 발견했을 때 사용해주세요"
+labels: ["bug"]
+assignees: []
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 버그 설명
+      description: 어떤 버그인지 설명해주세요
+      placeholder: "예: 로그인 시 비밀번호가 틀려도 200 OK가 반환됩니다"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 재현 방법
+      description: 버그를 재현하는 단계를 작성해주세요
+      placeholder: |
+        1. POST /api/v1/auth/login 호출
+        2. 잘못된 비밀번호로 요청
+        3. 200 OK 응답 확인
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대 동작
+      description: 정상적으로 동작했을 때 어떤 결과가 나와야 하나요?
+      placeholder: "401 Unauthorized가 반환되어야 합니다"
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 참고 사항
+      description: 로그, 스크린샷 등 추가 정보가 있다면 작성해주세요
+    validations:
+      required: false

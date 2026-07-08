@@ -7,5 +7,5 @@ import org.springframework.boot.runApplication
 class TripPhotoApplication
 
 fun main(args: Array<String>) {
-	runApplication<TripPhotoApplication>(*args)
+    runApplication<TripPhotoApplication>(*args)
 }

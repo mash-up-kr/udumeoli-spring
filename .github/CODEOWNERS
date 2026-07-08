@@ -1,0 +1,13 @@
+# CODEOWNERS
+# PR이 생성되면 아래 규칙에 따라 자동으로 리뷰어가 지정됩니다.
+# 자세한 문법: https://docs.github.com/en/repositories/managing-your-repositories-settings-and-customizations/customizing-your-repository/about-code-owners
+
+# 기본: 모든 변경은 팀 전원이 리뷰
+*                       @dlrkdus @Junhyukkkk @seongahjo
+
+# CI/CD 및 인프라 관련 파일 (변경 영향이 크므로 명시적으로 동일 규칙 적용)
+/.github/               @dlrkdus @Junhyukkkk @seongahjo
+/Dockerfile             @dlrkdus @Junhyukkkk @seongahjo
+/docker-compose*.yml    @dlrkdus @Junhyukkkk @seongahjo
+/build.gradle           @dlrkdus @Junhyukkkk @seongahjo
+/settings.gradle        @dlrkdus @Junhyukkkk @seongahjo

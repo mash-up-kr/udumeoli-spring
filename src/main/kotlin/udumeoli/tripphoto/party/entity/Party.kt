@@ -17,4 +17,3 @@ data class Party(
     @Embedded.Nullable(prefix = "")
     val auditMetadata: AuditMetadata? = null,
 )
-

@@ -1,0 +1,11 @@
+feature:
+  - head-branch: ['^feat', 'feat']
+
+bug:
+  - head-branch: ['^fix', 'fix', '^hotfix', 'hotfix']
+
+refactor:
+  - head-branch: ['^refactor', 'refactor']
+
+chore:
+  - head-branch: ['^chore', 'chore', '^docs', 'docs']

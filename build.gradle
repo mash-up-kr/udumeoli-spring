@@ -9,7 +9,7 @@ plugins {
 
 	id 'org.jetbrains.kotlin.kapt' version '1.9.25'         // QueryDSL용
 	id 'org.jlleitschuh.gradle.ktlint' version '12.1.1'
-	id 'io.gitlab.arturbosch.detekt' version '1.23.7'
+	id 'io.gitlab.arturbosch.detekt' version '1.23.6'
 }
 
 group = 'udumeoli'
@@ -93,4 +93,24 @@ ktlint {
 detekt {
 	buildUponDefaultConfig = true
 	autoCorrect = false
+	config.setFrom("$projectDir/detekt.yml")
+}
+
+// detekt configuration의 Kotlin 의존성을 detekt가 컴파일된 버전(1.9.23)으로 강제
+// 프로젝트 코드는 그대로 Kotlin 1.9.25를 사용하지만, detekt가 자기 자신을 실행할 때는
+// 컴파일 시점 버전과 맞춰야 NoSuchMethodError 등의 런타임 충돌을 피할 수 있음
+configurations.matching { it.name == "detekt" }.all {
+	resolutionStrategy.eachDependency { details ->
+		if (details.requested.group == 'org.jetbrains.kotlin') {
+			details.useVersion('1.9.23')
+		}
+	}
+}
+
+graalvmNative {
+	binaries {
+		main {
+			imageName = 'udumeoli'
+		}
+	}
 }

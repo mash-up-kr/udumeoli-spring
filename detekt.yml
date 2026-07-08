@@ -1,0 +1,15 @@
+# detekt 커스텀 규칙
+# buildUponDefaultConfig = true 이므로 여기에 명시하지 않은 규칙은 기본 설정을 따른다.
+# 기본 설정 전체 보기: https://github.com/detekt/detekt/blob/main/detekt-core/src/main/resources/default-detekt-config.yml
+
+performance:
+  # Kotlin Spring Boot main 함수의 표준 패턴(`runApplication<App>(*args)`)이라 비활성화
+  SpreadOperator:
+    active: false
+
+empty-blocks:
+  # Spring Boot의 `contextLoads()` 처럼 컨텍스트 로드 자체가 테스트인 경우가 있어 테스트 경로 제외
+  EmptyFunctionBlock:
+    active: true
+    ignoreOverridden: true
+    excludes: ['**/test/**']

@@ -1,0 +1,19 @@
+services:
+  app:
+    image: udumeoli-backend:latest
+    container_name: udumeoli-app
+    restart: unless-stopped
+    ports:
+      # nginx 리버스 프록시만 접근하도록 로컬에만 바인딩
+      - "127.0.0.1:8080:8080"
+    environment:
+      # ★ 이게 빠지면 Oracle(dev) 설정이 로드 안 되고 H2로 폴백됨
+      SPRING_PROFILES_ACTIVE: dev
+      # 비밀번호는 같은 폴더의 .env 에서 주입 (git 에는 커밋 금지)
+      DB_PASSWORD: ${DB_PASSWORD}
+      WALLET_PASSWORD: ${WALLET_PASSWORD}
+    volumes:
+      # 서버의 wallet 디렉토리를 컨테이너 안으로 read-only 마운트
+      - /opt/oracle/wallet:/opt/oracle/wallet:ro
+    # 참고: runtime 이미지(debian-slim)에 curl 이 없어서 compose healthcheck 는 생략.
+    #       헬스체크는 deploy.yml 이 nginx 경유로 외부에서 수행함.

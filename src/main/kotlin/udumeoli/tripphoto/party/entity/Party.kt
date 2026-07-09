@@ -14,6 +14,8 @@ data class Party(
     val partyName: String,
     @Column("invite_code")
     val inviteCode: String,
-    @Embedded.Nullable(prefix = "")
-    val auditMetadata: AuditMetadata? = null,
+    @Column("owner_id")
+    val ownerId: Long,
+    @Embedded.Empty(prefix = "")
+    val auditMetadata: AuditMetadata = AuditMetadata(),
 )

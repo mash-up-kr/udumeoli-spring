@@ -1,5 +1,6 @@
 package udumeoli.tripphoto.trip.entity
 
+import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
@@ -16,6 +17,7 @@ data class TripImage(
     val imageId: Long,
     @Column("image_date")
     val imageDate: LocalDate? = null,
+    @CreatedDate
     @Column("created_at")
     val createdAt: LocalDateTime? = null,
 )

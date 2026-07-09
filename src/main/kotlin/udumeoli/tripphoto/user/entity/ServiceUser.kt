@@ -13,6 +13,6 @@ data class ServiceUser(
     val nickname: String,
     @Column("profile_image_url")
     val profileImageUrl: String = "DEFAULT",
-    @Embedded.Nullable(prefix = "")
-    val auditMetadata: AuditMetadata? = null,
+    @Embedded.Empty(prefix = "")
+    val auditMetadata: AuditMetadata = AuditMetadata(),
 )

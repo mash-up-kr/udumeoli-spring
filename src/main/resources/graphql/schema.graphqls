@@ -1,0 +1,161 @@
+# PHOTATO GraphQL 스키마 v1 (프론트 협의용 초안)
+#
+# - 카카오 OAuth 로그인/토큰 발급은 REST로 처리하고,
+#   GraphQL 요청은 Authorization 헤더의 토큰으로 사용자를 식별하는 것을 전제로 한다.
+# - "협의 포인트" 로 표시한 부분은 프론트와 합의 후 확정한다.
+
+"ISO-8601 날짜. 예: \"2026-07-09\""
+scalar Date
+
+"ISO-8601 날짜+시간. 예: \"2026-07-09T12:34:56\""
+scalar DateTime
+
+type Query {
+    "내 프로필 (토큰 기준)"
+    me: User!
+
+    "내가 속한 여행팟 목록 (상단 드롭다운용)"
+    myParties: [Party!]!
+
+    "팟 상세 (멤버 목록 포함)"
+    party(partyId: ID!): Party!
+
+    "팟의 전체 여행 목록 — 지도 채색/썸네일 표시용"
+    trips(partyId: ID!): [Trip!]!
+
+    "특정 지역의 여행 목록 — 지역별 갤러리 (최신순)"
+    tripsByRegion(partyId: ID!, regionCode: String!): [Trip!]!
+
+    "여행 단건 상세"
+    trip(tripId: ID!): Trip!
+
+    "여행 사진 추출(티켓 이미지)용 통계"
+    travelStats(partyId: ID!): TravelStats!
+}
+
+type Mutation {
+    "닉네임/프로필 이미지 설정 (가입 직후 온보딩 포함)"
+    updateProfile(input: UpdateProfileInput!): User!
+
+    "여행팟 생성 — 6자리 초대코드가 발급된다"
+    createParty(name: String!): Party!
+
+    "초대코드로 팟 참여"
+    joinParty(inviteCode: String!): Party!
+
+    """
+    이미지 업로드 URL 발급 (협의 포인트)
+    presigned URL 방식 전제: 발급받은 uploadUrl로 PUT 업로드 후 imageId를 createTrip/addTripImages에 전달.
+    multipart REST 업로드로 바뀌면 이 뮤테이션은 제거될 수 있다.
+    """
+    createImageUploadUrl(input: CreateImageUploadUrlInput!): ImageUploadTarget!
+
+    "여행 등록 — 지역 + 기간 + 색상 + 사진 (MVP: 사진 1장)"
+    createTrip(input: CreateTripInput!): Trip!
+
+    "기존 여행에 사진 추가 (팟 멤버 누구나 가능)"
+    addTripImages(input: AddTripImagesInput!): Trip!
+
+    "여행 삭제 — 삭제된 여행의 id를 반환"
+    deleteTrip(tripId: ID!): ID!
+}
+
+type User {
+    id: ID!
+    nickname: String!
+    profileImageUrl: String!
+}
+
+type Party {
+    id: ID!
+    name: String!
+    "6자리 초대코드"
+    inviteCode: String!
+    owner: User!
+    members: [User!]!
+    createdAt: DateTime!
+}
+
+"시·군·구 행정구역. 폴리곤(GeoJSON)은 프론트 정적 자산이 관리하고 백엔드는 코드만 다룬다."
+type Region {
+    "행정구역 코드 5자리 (예: \"11110\" = 서울 종로구)"
+    code: String!
+    name: String!
+}
+
+type Trip {
+    id: ID!
+    region: Region!
+    "지도 채색 색상, hex (예: \"#FF5733\")"
+    color: String
+    startDate: Date!
+    endDate: Date!
+    images: [Image!]!
+    "등록자 (탈퇴한 사용자면 null)"
+    createdBy: User
+    createdAt: DateTime!
+}
+
+type Image {
+    id: ID!
+    originalUrl: String!
+    "썸네일 생성 전이면 null — null이면 originalUrl로 대체 표시 (협의 포인트)"
+    thumbnailUrl: String
+    status: ImageStatus!
+    "업로더 (탈퇴한 사용자면 null)"
+    uploader: User
+    createdAt: DateTime!
+}
+
+enum ImageStatus {
+    "업로드 URL만 발급됨"
+    PENDING
+    "업로드 완료"
+    ACTIVE
+    "삭제됨"
+    DELETED
+}
+
+"\"200일 동안 5개 도시\" 티켓용 통계 (협의 포인트: 필요한 수치 확정)"
+type TravelStats {
+    "여행 횟수"
+    tripCount: Int!
+    "방문한 지역(시·군·구) 수"
+    regionCount: Int!
+    "여행 일수 합계 (기간 겹침 처리 방식은 협의)"
+    totalTravelDays: Int!
+    firstTripDate: Date
+    lastTripDate: Date
+}
+
+input UpdateProfileInput {
+    nickname: String!
+    profileImageUrl: String
+}
+
+input CreateImageUploadUrlInput {
+    "예: \"image/jpeg\""
+    contentType: String!
+}
+
+type ImageUploadTarget {
+    imageId: ID!
+    "이 URL로 PUT 업로드"
+    uploadUrl: String!
+}
+
+input CreateTripInput {
+    partyId: ID!
+    regionCode: String!
+    "hex 색상 (예: \"#FF5733\")"
+    color: String!
+    startDate: Date!
+    endDate: Date!
+    "MVP: 1개만 허용, 추후 여러 장 확장"
+    imageIds: [ID!]!
+}
+
+input AddTripImagesInput {
+    tripId: ID!
+    imageIds: [ID!]!
+}

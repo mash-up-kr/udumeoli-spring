@@ -38,6 +38,11 @@ jobs:
         env:
           SPRING_PROFILES_ACTIVE: local
 
+      # 실제 Oracle(gvenzl/oracle-free) 컨테이너 통합 테스트 (M0-5)
+      # GitHub Actions 러너에는 Docker가 기본 설치되어 있어 Testcontainers가 바로 동작한다
+      - name: Run integration tests (Oracle Testcontainers)
+        run: ./gradlew integrationTest --no-daemon
+
       - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v4

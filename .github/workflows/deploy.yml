@@ -3,6 +3,7 @@ name: Deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch:   # Actions UI에서 브랜치 골라 수동 배포 (dev 검증용)
 
 jobs:
   build-and-deploy:

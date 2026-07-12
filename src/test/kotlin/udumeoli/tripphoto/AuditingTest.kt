@@ -55,8 +55,7 @@ class AuditingTest {
             .withFailMessage {
                 "updatedAt이 갱신되지 않았다 (before=$firstUpdatedAt, after=${updated.auditMetadata.updatedAt}) " +
                     "→ auditing이 UPDATE에 걸리지 않는다"
-            }
-            .isAfter(firstUpdatedAt)
+            }.isAfter(firstUpdatedAt)
 
         // @CreatedDate는 INSERT에만 걸려야 한다 → UPDATE에서 바뀌면 안 된다
         assertThat(updated.auditMetadata.createdAt)

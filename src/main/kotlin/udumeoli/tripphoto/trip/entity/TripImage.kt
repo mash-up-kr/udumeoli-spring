@@ -7,7 +7,7 @@ import org.springframework.data.relational.core.mapping.Table
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-@Table("trip_images")
+@Table("trip_image")
 data class TripImage(
     @Id
     val id: Long? = null,

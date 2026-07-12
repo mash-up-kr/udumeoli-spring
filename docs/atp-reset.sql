@@ -10,6 +10,8 @@ BEGIN
         SELECT table_name
         FROM user_tables
         WHERE table_name IN (
+            -- V2에서 단수로 통일 (구 복수형 이름도 함께 정리)
+            'TRIP_IMAGE', 'TRIP', 'REGION',
             'TRIP_IMAGES', 'TRIPS', 'IMAGE', 'REGIONS',
             'PARTY_MEMBER', 'PARTY', 'SOCIAL_ACCOUNT', 'SERVICE_USER',
             'FLYWAY_SCHEMA_HISTORY'

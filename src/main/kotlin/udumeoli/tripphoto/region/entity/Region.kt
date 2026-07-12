@@ -12,7 +12,7 @@ import udumeoli.tripphoto.common.entity.AuditMetadata
  * id가 항상 채워져 있어 기본 isNew 판정(id == null)으로는 신규 저장이 UPDATE로 나가기 때문에
  * Persistable을 구현한다. 신규 행은 반드시 Region.of(...)로 생성해서 save() 해야 INSERT 된다.
  */
-@Table("regions")
+@Table("region")
 data class Region(
     @Id
     val regionCode: String,

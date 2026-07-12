@@ -16,7 +16,6 @@ data class Image(
     val thumbnailUrl: String? = null,
     @Column("uploader_id")
     val uploaderId: Long? = null,
-    val status: ImageStatus = ImageStatus.PENDING,
     @CreatedDate
     @Column("created_at")
     val createdAt: LocalDateTime? = null,

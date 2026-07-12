@@ -7,7 +7,7 @@ import org.springframework.data.relational.core.mapping.Table
 import udumeoli.tripphoto.common.entity.AuditMetadata
 import java.time.LocalDate
 
-@Table("trips")
+@Table("trip")
 data class Trip(
     @Id
     val id: Long? = null,

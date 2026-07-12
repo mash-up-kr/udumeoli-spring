@@ -9,7 +9,6 @@ import org.junit.jupiter.api.TestMethodOrder
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import udumeoli.tripphoto.image.entity.Image
-import udumeoli.tripphoto.image.entity.ImageStatus
 import udumeoli.tripphoto.image.repository.ImageRepository
 import udumeoli.tripphoto.party.entity.Party
 import udumeoli.tripphoto.party.entity.PartyMember
@@ -132,13 +131,12 @@ abstract class AbstractPersistenceCrudTest {
 
     @Test
     @Order(6)
-    fun `Image CRUD (nullable thumbnail-uploader + status)`() {
+    fun `Image CRUD (nullable thumbnail-uploader)`() {
         image =
             imageRepository.save(
                 Image(originalUrl = "https://storage.example.com/o/1.jpg"),
             )
         assertThat(image.id).isNotNull()
-        assertThat(image.status).isEqualTo(ImageStatus.PENDING)
         assertThat(image.thumbnailUrl).isNull()
         assertThat(image.uploaderId).isNull()
         assertThat(image.createdAt).isNotNull()
@@ -146,13 +144,12 @@ abstract class AbstractPersistenceCrudTest {
         image =
             imageRepository.save(
                 image.copy(
-                    status = ImageStatus.ACTIVE,
                     thumbnailUrl = "https://storage.example.com/t/1.jpg",
                     uploaderId = user.id,
                 ),
             )
         val found = imageRepository.findById(image.id!!).get()
-        assertThat(found.status).isEqualTo(ImageStatus.ACTIVE)
+        assertThat(found.thumbnailUrl).isEqualTo("https://storage.example.com/t/1.jpg")
         assertThat(imageRepository.findAllByUploaderId(user.id!!)).hasSize(1)
     }
 

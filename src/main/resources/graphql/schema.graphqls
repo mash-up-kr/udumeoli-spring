@@ -1,4 +1,4 @@
-# PHOTATO GraphQL 스키마 v1.1
+# PHOTATO GraphQL 스키마 v1.2
 #
 # [인증 전제]
 # - 카카오 OAuth 로그인/토큰 발급은 REST로 처리한다. (POST /api/auth/kakao 등 — 명세 별도 확정)
@@ -28,7 +28,7 @@
 #
 # [사진 변경 정책 — MVP: 여행당 1장]
 # - 사진 추가/삭제 뮤테이션은 두지 않는다. 사진 변경은 updateTrip.imageIds "통째 교체"로 일원화.
-# - 여러 장 확장 시점(v1.2)에 addTripImages / deleteTripImage 부활 예정.
+# - 추후 여러 장 확장 시점에 addTripImages / deleteTripImage 부활 예정.
 #
 # [목록 반환 정책]
 # - v1의 모든 목록은 배열로 반환한다. (페이지네이션 없음)
@@ -54,7 +54,7 @@ type Query {
 
     """
     팟의 전체 여행 목록 — 지도 채색/썸네일 표시용. 전체 반환(페이지네이션 없음).
-    정렬: startDate 내림차순, 동률이면 createdAt 내림차순 (협의 중).
+    정렬: 최신순 확정 — startDate 내림차순, 동률이면 createdAt 내림차순.
     """
     trips(partyId: ID!): [Trip!]!
 
@@ -67,8 +67,7 @@ type Query {
     "여행 사진 추출(티켓 이미지)용 통계"
     travelStats(partyId: ID!): TravelStats!
 
-    "전체 행정구역(시·군·구) 목록 — regionCode ↔ regionName 매핑용. (필요 여부 협의 중)"
-    regions: [Region!]!
+    # regions 쿼리는 제거 확정 — 지역 데이터(코드↔이름, 폴리곤)는 프론트 정적 자산이 관리한다.
 }
 
 type Mutation {
@@ -136,7 +135,7 @@ type Mutation {
     updateTrip(input: UpdateTripInput!): Trip!
 
     # addTripImages / deleteTripImage 는 MVP "여행당 사진 1장" 정책과 충돌하여 v1에서 제외.
-    # 사진 변경은 updateTrip.imageIds 교체로 일원화. 여러 장 확장(v1.2) 시 부활 예정.
+    # 사진 변경은 updateTrip.imageIds 교체로 일원화. 추후 여러 장 확장 시 부활 예정.
     # addTripImages(input: AddTripImagesInput!): Trip!
     # deleteTripImage(input: DeleteTripImageInput!): Trip!
 
@@ -166,7 +165,10 @@ type Party {
     createdAt: DateTime!
 }
 
-"시·군·구 행정구역. 폴리곤(GeoJSON)은 프론트 정적 자산이 관리하고 백엔드는 코드만 다룬다."
+"""
+시·군·구 행정구역. 폴리곤(GeoJSON)과 지역 목록은 프론트 정적 자산이 관리하고 백엔드는 코드만 다룬다.
+(별도 regions 조회 쿼리는 두지 않는다 — Trip.region 으로만 노출)
+"""
 type Region {
     "행정구역 코드 5자리 (예: \"11110\" = 서울 종로구)"
     code: String!
@@ -256,7 +258,7 @@ input UpdateTripInput {
     imageIds: [ID!]
 }
 
-# 여러 장 확장(v1.2) 시 부활 예정
+# 추후 여러 장 확장 시 부활 예정
 # input AddTripImagesInput {
 #     tripId: ID!
 #     imageIds: [ID!]!

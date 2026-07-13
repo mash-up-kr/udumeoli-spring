@@ -17,6 +17,6 @@ data class SocialAccount(
     val providerUserId: String,
     @Column("provider_email")
     val providerEmail: String? = null,
-    @Embedded.Nullable(prefix = "")
-    val auditMetadata: AuditMetadata? = null,
+    @Embedded.Empty(prefix = "")
+    val auditMetadata: AuditMetadata = AuditMetadata(),
 )

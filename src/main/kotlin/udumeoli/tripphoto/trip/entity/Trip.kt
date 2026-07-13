@@ -7,7 +7,7 @@ import org.springframework.data.relational.core.mapping.Table
 import udumeoli.tripphoto.common.entity.AuditMetadata
 import java.time.LocalDate
 
-@Table("trips")
+@Table("trip")
 data class Trip(
     @Id
     val id: Long? = null,
@@ -21,7 +21,7 @@ data class Trip(
     @Column("end_date")
     val endDate: LocalDate,
     @Column("created_by")
-    val createdBy: Long,
-    @Embedded.Nullable(prefix = "")
-    val auditMetadata: AuditMetadata? = null,
+    val createdBy: Long? = null,
+    @Embedded.Empty(prefix = "")
+    val auditMetadata: AuditMetadata = AuditMetadata(),
 )

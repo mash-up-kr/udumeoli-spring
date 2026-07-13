@@ -3,11 +3,8 @@ plugins {
 	id 'org.jetbrains.kotlin.plugin.spring' version '1.9.25'
 	id 'org.springframework.boot' version '3.5.14'
 	id 'io.spring.dependency-management' version '1.1.7'
-	id 'org.hibernate.orm' version '6.6.49.Final'
 	id 'org.graalvm.buildtools.native' version '0.10.6'
-	id 'org.jetbrains.kotlin.plugin.jpa' version '1.9.25'
 
-	id 'org.jetbrains.kotlin.kapt' version '1.9.25'         // QueryDSL용
 	id 'org.jlleitschuh.gradle.ktlint' version '12.1.1'
 	id 'io.gitlab.arturbosch.detekt' version '1.23.6'
 }
@@ -28,7 +25,6 @@ repositories {
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-graphql'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -40,11 +36,9 @@ dependencies {
 	testImplementation 'org.springframework.graphql:spring-graphql-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-	// QueryDSL
-	implementation 'com.querydsl:querydsl-jpa:5.1.0:jakarta'
-	kapt 'com.querydsl:querydsl-apt:5.1.0:jakarta'
-	kapt 'jakarta.annotation:jakarta.annotation-api'
-	kapt 'jakarta.persistence:jakarta.persistence-api'
+	// Flyway (스키마 마이그레이션, ADR-1)
+	implementation 'org.flywaydb:flyway-core'
+	runtimeOnly 'org.flywaydb:flyway-database-oracle'
 
 	// Oracle JDBC (운영용)
 	implementation platform('com.oracle.database.jdbc:ojdbc-bom:21.14.0.0')
@@ -58,6 +52,10 @@ dependencies {
 	testImplementation 'io.kotest:kotest-assertions-core:5.9.1'
 	testImplementation 'io.mockk:mockk:1.13.13'
 
+	// Testcontainers — 실제 Oracle Free 컨테이너 통합 테스트 (M0-5, 버전은 Boot BOM 관리)
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation 'org.testcontainers:junit-jupiter'
+	testImplementation 'org.testcontainers:oracle-free'
 }
 
 kotlin {
@@ -66,20 +64,23 @@ kotlin {
 	}
 }
 
-hibernate {
-	enhancement {
-		enableAssociationManagement = true
+// 단위/H2 스모크 테스트 — 'integration' 태그는 제외해서 Docker 없이도 빠르게 돈다
+tasks.named('test') {
+	useJUnitPlatform {
+		excludeTags 'integration'
 	}
 }
 
-allOpen {
-	annotation 'jakarta.persistence.Entity'
-	annotation 'jakarta.persistence.MappedSuperclass'
-	annotation 'jakarta.persistence.Embeddable'
-}
-
-tasks.named('test') {
-	useJUnitPlatform()
+// Oracle Free 컨테이너 통합 테스트 — Docker 필요. CI(pr.yml)와 로컬(./gradlew integrationTest)에서 명시적으로 실행
+tasks.register('integrationTest', Test) {
+	description = 'Testcontainers 기반 Oracle 통합 테스트'
+	group = 'verification'
+	useJUnitPlatform {
+		includeTags 'integration'
+	}
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	shouldRunAfter tasks.named('test')
 }
 
 // ktlint 설정

@@ -18,4 +18,10 @@ data class Party(
     val ownerId: Long,
     @Embedded.Empty(prefix = "")
     val auditMetadata: AuditMetadata = AuditMetadata(),
-)
+) {
+    fun isOwner(userId: Long): Boolean = ownerId == userId
+
+    fun canLeave(userId: Long): Boolean = !isOwner(userId)
+
+    fun canKick(targetUserId: Long): Boolean = !isOwner(targetUserId)
+}

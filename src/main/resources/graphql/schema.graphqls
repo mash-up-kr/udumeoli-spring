@@ -17,8 +17,8 @@
 # - 사용하는 코드 목록:
 #   UNAUTHENTICATED / FORBIDDEN / PARTY_NOT_FOUND / TRIP_NOT_FOUND / IMAGE_NOT_FOUND
 #   / REGION_NOT_FOUND / MEMBER_NOT_FOUND / INVALID_INVITE_CODE / IMAGE_NOT_UPLOADED
-#   / CANNOT_REMOVE_OWNER / PARTY_HAS_MEMBERS / OWNER_CANNOT_LEAVE / RATE_LIMITED
-#   / VALIDATION_ERROR
+#   / ALREADY_JOINED_PARTY / PARTY_FULL / CANNOT_REMOVE_OWNER / PARTY_HAS_MEMBERS
+#   / OWNER_CANNOT_LEAVE / RATE_LIMITED / VALIDATION_ERROR
 #
 # [이미지 업로드 플로우]
 # - createImageUploadUrl → 프론트가 uploadUrl로 PUT 업로드 → imageId를 createTrip/updateTrip에 전달.
@@ -78,7 +78,9 @@ type Mutation {
     createParty(name: String!): Party!
 
     """
-    초대코드로 팟 참여. 이미 멤버면 기존 Party를 그대로 반환(멱등). 코드가 틀리면 INVALID_INVITE_CODE.
+    초대코드로 팟 참여.
+    코드가 틀리면 INVALID_INVITE_CODE, 이미 멤버면 ALREADY_JOINED_PARTY.
+    최대 인원 6명을 초과하면 PARTY_FULL.
     무차별 대입 방지를 위해 서버 rate limit 적용 — 초과 시 RATE_LIMITED.
     """
     joinParty(inviteCode: String!): Party!
@@ -160,7 +162,7 @@ type Party {
     "6자리 초대코드. owner 및 멤버에게만 노출된다고 가정."
     inviteCode: String!
     owner: User!
-    "owner 포함 전체 멤버."
+    "owner 포함 전체 멤버. 최대 6명."
     members: [User!]!
     createdAt: DateTime!
 }

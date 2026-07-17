@@ -10,11 +10,15 @@ import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
 import udumeoli.tripphoto.config.CurrentUserGraphQlInterceptor
 import udumeoli.tripphoto.party.dto.KickMemberInput
 import udumeoli.tripphoto.party.dto.PartyPayload
-import udumeoli.tripphoto.party.service.PartyService
+import udumeoli.tripphoto.party.service.PartyCommandService
+import udumeoli.tripphoto.party.service.PartyInviteService
+import udumeoli.tripphoto.party.service.PartyQueryService
 
 @Controller
 class PartyGraphQlController(
-    private val partyService: PartyService,
+    private val partyQueryService: PartyQueryService,
+    private val partyCommandService: PartyCommandService,
+    private val partyInviteService: PartyInviteService,
 ) {
     @QueryMapping
     fun myParties(
@@ -23,7 +27,7 @@ class PartyGraphQlController(
             required = false,
         )
         currentUserId: Long?,
-    ): List<PartyPayload> = partyService.myParties(requireCurrentUserId(currentUserId))
+    ): List<PartyPayload> = partyQueryService.myParties(requireCurrentUserId(currentUserId))
 
     @QueryMapping
     fun party(
@@ -33,7 +37,7 @@ class PartyGraphQlController(
         )
         currentUserId: Long?,
         @Argument partyId: Long,
-    ): PartyPayload = partyService.party(requireCurrentUserId(currentUserId), partyId)
+    ): PartyPayload = partyQueryService.party(requireCurrentUserId(currentUserId), partyId)
 
     @MutationMapping
     fun createParty(
@@ -43,7 +47,7 @@ class PartyGraphQlController(
         )
         currentUserId: Long?,
         @Argument name: String,
-    ): PartyPayload = partyService.createParty(requireCurrentUserId(currentUserId), name)
+    ): PartyPayload = partyCommandService.createParty(requireCurrentUserId(currentUserId), name)
 
     @MutationMapping
     fun joinParty(
@@ -53,7 +57,7 @@ class PartyGraphQlController(
         )
         currentUserId: Long?,
         @Argument inviteCode: String,
-    ): PartyPayload = partyService.joinParty(requireCurrentUserId(currentUserId), inviteCode)
+    ): PartyPayload = partyInviteService.joinParty(requireCurrentUserId(currentUserId), inviteCode)
 
     @MutationMapping
     fun regenerateInviteCode(
@@ -63,7 +67,7 @@ class PartyGraphQlController(
         )
         currentUserId: Long?,
         @Argument partyId: Long,
-    ): PartyPayload = partyService.regenerateInviteCode(requireCurrentUserId(currentUserId), partyId)
+    ): PartyPayload = partyInviteService.regenerateInviteCode(requireCurrentUserId(currentUserId), partyId)
 
     @MutationMapping
     fun leaveParty(
@@ -73,7 +77,7 @@ class PartyGraphQlController(
         )
         currentUserId: Long?,
         @Argument partyId: Long,
-    ): Long = partyService.leaveParty(requireCurrentUserId(currentUserId), partyId)
+    ): Long = partyCommandService.leaveParty(requireCurrentUserId(currentUserId), partyId)
 
     @MutationMapping
     fun deleteParty(
@@ -83,7 +87,7 @@ class PartyGraphQlController(
         )
         currentUserId: Long?,
         @Argument partyId: Long,
-    ): Long = partyService.deleteParty(requireCurrentUserId(currentUserId), partyId)
+    ): Long = partyCommandService.deleteParty(requireCurrentUserId(currentUserId), partyId)
 
     @MutationMapping
     fun kickMember(
@@ -94,7 +98,7 @@ class PartyGraphQlController(
         currentUserId: Long?,
         @Argument input: KickMemberInput,
     ): PartyPayload =
-        partyService.kickMember(
+        partyCommandService.kickMember(
             currentUserId = requireCurrentUserId(currentUserId),
             partyId = input.partyId,
             targetUserId = input.targetUserId,

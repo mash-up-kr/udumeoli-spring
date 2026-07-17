@@ -140,29 +140,6 @@ class ImageServiceTest {
     }
 
     @Test
-    fun `cleanUpOrphans - 고아 이미지의 객체와 행을 지우고 개수를 반환한다`() {
-        every { imageRepository.findOrphansCreatedBefore(any()) } returns listOf(image(1L), image(2L))
-        justRun { storagePort.delete(any()) }
-        justRun { imageRepository.deleteAllById(any()) }
-
-        val deleted = imageService.cleanUpOrphans()
-
-        assertThat(deleted).isEqualTo(2)
-        verifyOrder {
-            storagePort.delete(listOf("original/1.jpg", "original/2.jpg"))
-            imageRepository.deleteAllById(listOf(1L, 2L))
-        }
-    }
-
-    @Test
-    fun `cleanUpOrphans - 고아가 없으면 스토리지를 건드리지 않는다`() {
-        every { imageRepository.findOrphansCreatedBefore(any()) } returns emptyList()
-
-        assertThat(imageService.cleanUpOrphans()).isZero()
-        verify { storagePort wasNot Called }
-    }
-
-    @Test
     fun `requestThumbnails - 이미지 id와 원본 URL로 요청한다 (썸네일 서버가 GET으로 내려받을 주소)`() {
         imageService.requestThumbnails(listOf(image(1L)))
 

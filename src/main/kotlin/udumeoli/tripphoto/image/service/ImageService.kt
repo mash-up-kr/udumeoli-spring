@@ -9,8 +9,6 @@ import udumeoli.tripphoto.image.entity.Image
 import udumeoli.tripphoto.image.repository.ImageRepository
 import udumeoli.tripphoto.image.storage.ImageStoragePort
 import udumeoli.tripphoto.image.thumbnail.ThumbnailPort
-import java.time.Duration
-import java.time.LocalDateTime
 import java.util.UUID
 
 @Service
@@ -22,7 +20,9 @@ class ImageService(
 ) {
     /**
      * presigned 업로드 URL 발급 (createImageUploadUrl 뮤테이션).
-     * image 행을 먼저 INSERT해 키를 확정한다 — 미사용 행은 [cleanUpOrphans]가 회수한다.
+     * image 행을 먼저 INSERT해 키를 확정한다. 발급 후 안 쓴 행은 고아로 남지만,
+     * 참조 여부로 언제든 판별/회수 가능하다 — 정리 배치는 MVP에서 의도적으로 보류
+     * ([ImageRepository.findOrphansCreatedBefore] 참고).
      * uploaderId는 인증(카카오 OAuth) 도입 전까지 null.
      * 인증 도입 시 uploaderId를 필수화하고 [verifyUploaded]에 요청자 == uploader 검증을 추가해야 한다 (IDOR 방지).
      */
@@ -81,7 +81,7 @@ class ImageService(
 
     /**
      * 이미지 삭제 — updateTrip "통째 교체"에서 밀려난 기존 사진 정리용.
-     * 객체 → 행 순서: 중간에 실패해도 행이 남아 [cleanUpOrphans]가 재시도할 수 있다.
+     * 객체 → 행 순서: 중간에 실패해도 행이 남아 고아로 판별할 수 있다(추후 정리 배치가 재시도 가능).
      * (반대 순서면 키를 아는 곳이 사라져 영구 고아가 된다)
      * DB 트랜잭션 안에서 호출하지 말 것 — 롤백돼도 스토리지 삭제는 되돌릴 수 없다 (AFTER_COMMIT에서 호출).
      */
@@ -92,22 +92,6 @@ class ImageService(
         val images = imageRepository.findAllById(imageIds)
         deleteFromStorage(images)
         imageRepository.deleteAllById(images.map { it.id!! })
-    }
-
-    /**
-     * 고아 이미지 정리 — 여행에 연결되지 않은 채 [ORPHAN_RETENTION]이 지난 행과 객체를 삭제한다.
-     * 삭제 순서/멱등성 계약은 [deleteImages]와 동일.
-     * @return 정리한 이미지 수
-     */
-    fun cleanUpOrphans(): Int {
-        val threshold = LocalDateTime.now().minus(ORPHAN_RETENTION)
-        val orphans = imageRepository.findOrphansCreatedBefore(threshold)
-        if (orphans.isEmpty()) {
-            return 0
-        }
-        deleteFromStorage(orphans)
-        imageRepository.deleteAllById(orphans.map { it.id!! })
-        return orphans.size
     }
 
     /** 원본과 (있다면) 썸네일 객체를 함께 삭제한다. */
@@ -149,9 +133,6 @@ class ImageService(
                 "image/png" to "png",
                 "image/webp" to "webp",
             )
-
-        /** presigned 만료(5분)보다 충분히 길게 — 업로드 후 createTrip 직전의 정상 사용자를 보호 */
-        private val ORPHAN_RETENTION: Duration = Duration.ofHours(24)
     }
 }
 

@@ -1,0 +1,16 @@
+package udumeoli.tripphoto.common.graphql
+
+enum class GraphQlErrorCode {
+    UNAUTHENTICATED,
+    FORBIDDEN,
+    PARTY_NOT_FOUND,
+    MEMBER_NOT_FOUND,
+    INVALID_INVITE_CODE,
+    ALREADY_JOINED_PARTY,
+    PARTY_FULL,
+    RATE_LIMITED,
+    PARTY_HAS_MEMBERS,
+    OWNER_CANNOT_LEAVE,
+    CANNOT_REMOVE_OWNER,
+    VALIDATION_ERROR,
+}

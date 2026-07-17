@@ -134,7 +134,7 @@ abstract class AbstractPersistenceCrudTest {
     fun `Image CRUD (nullable thumbnail-uploader)`() {
         image =
             imageRepository.save(
-                Image(originalUrl = "https://storage.example.com/o/1.jpg"),
+                Image(objectKey = "original/crud-test-1.jpg", originalUrl = "https://storage.example.com/o/1.jpg"),
             )
         assertThat(image.id).isNotNull()
         assertThat(image.thumbnailUrl).isNull()

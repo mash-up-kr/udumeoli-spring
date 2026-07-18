@@ -62,13 +62,21 @@ class S3StorageAdapter(
             return
         }
         val identifiers = objectKeys.map { ObjectIdentifier.builder().key(it).build() }
-        s3Client.deleteObjects(
-            DeleteObjectsRequest
-                .builder()
-                .bucket(properties.bucket)
-                .delete(Delete.builder().objects(identifiers).build())
-                .build(),
-        )
+        val response =
+            s3Client.deleteObjects(
+                DeleteObjectsRequest
+                    .builder()
+                    .bucket(properties.bucket)
+                    .delete(Delete.builder().objects(identifiers).build())
+                    .build(),
+            )
+        // 복수 삭제는 키별 실패를 예외가 아니라 200 응답 본문(errors)으로 돌려준다.
+        // 여기서 던지지 않으면 호출자(deleteImages)가 행까지 지워 객체 키의 유일한 기록이 사라진다
+        // — "객체 → 행" 삭제 순서 계약은 실패 시 행이 남는다는 전제 위에 있다.
+        // (없는 키 삭제는 S3 규약상 성공으로 집계되므로 멱등성 계약과 충돌하지 않는다)
+        check(response.errors().isEmpty()) {
+            "객체 삭제 부분 실패: ${response.errors().joinToString { "${it.key()}(${it.code()})" }}"
+        }
     }
 
     override fun publicUrl(objectKey: String): String = "${properties.publicBaseUrl.trimEnd('/')}/$objectKey"

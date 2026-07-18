@@ -7,7 +7,7 @@ package udumeoli.tripphoto.image.storage
  */
 interface ImageStoragePort {
     /** objectKey에 PUT 업로드할 수 있는 presigned URL을 발급한다. */
-    fun issueUploadUrl(
+    fun createUploadUrl(
         objectKey: String,
         contentType: String,
     ): String

@@ -16,7 +16,7 @@ class ImageMutationResolver(
     @MutationMapping
     fun createImageUploadUrl(
         @Argument input: CreateImageUploadUrlInput,
-    ): ImageUploadTarget = imageService.issueUploadUrl(contentType = input.contentType)
+    ): ImageUploadTarget = imageService.createUploadUrl(contentType = input.contentType)
 }
 
 /** schema.graphqls의 CreateImageUploadUrlInput과 1:1 */

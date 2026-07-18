@@ -36,13 +36,13 @@ class ImageServiceTest {
     private val imageService = ImageService(imageRepository, storagePort, thumbnailPort, properties)
 
     @Test
-    fun `issueUploadUrl - image 행을 먼저 만들고 presigned URL을 반환한다`() {
+    fun `createUploadUrl - image 행을 먼저 만들고 presigned URL을 반환한다`() {
         val savedImage = slot<Image>()
         every { storagePort.publicUrl(any()) } answers { "https://cdn.example.com/${firstArg<String>()}" }
         every { imageRepository.save(capture(savedImage)) } answers { firstArg<Image>().copy(id = 1L) }
-        every { storagePort.issueUploadUrl(any(), "image/jpeg") } returns "https://upload.example.com/presigned"
+        every { storagePort.createUploadUrl(any(), "image/jpeg") } returns "https://upload.example.com/presigned"
 
-        val target = imageService.issueUploadUrl("image/jpeg")
+        val target = imageService.createUploadUrl("image/jpeg")
 
         assertThat(target.imageId).isEqualTo(1L)
         assertThat(target.uploadUrl).isEqualTo("https://upload.example.com/presigned")
@@ -52,8 +52,8 @@ class ImageServiceTest {
     }
 
     @Test
-    fun `issueUploadUrl - 허용 목록 밖 contentType은 VALIDATION_ERROR (SVG는 XSS 벡터라 제외)`() {
-        assertThatThrownBy { imageService.issueUploadUrl("image/svg+xml") }
+    fun `createUploadUrl - 허용 목록 밖 contentType은 VALIDATION_ERROR (SVG는 XSS 벡터라 제외)`() {
+        assertThatThrownBy { imageService.createUploadUrl("image/svg+xml") }
             .isInstanceOfSatisfying(DomainException::class.java) {
                 assertThat(it.code).isEqualTo(ErrorCode.VALIDATION_ERROR)
             }

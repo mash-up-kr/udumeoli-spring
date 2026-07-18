@@ -30,7 +30,7 @@ class ImageMutationResolverTest {
 
     @Test
     fun `createImageUploadUrl - imageId와 uploadUrl을 반환한다`() {
-        given(imageService.issueUploadUrl("image/jpeg"))
+        given(imageService.createUploadUrl("image/jpeg"))
             .willReturn(ImageUploadTarget(imageId = 1L, uploadUrl = "https://upload.example.com/presigned"))
 
         graphQlTester
@@ -54,7 +54,7 @@ class ImageMutationResolverTest {
 
     @Test
     fun `createImageUploadUrl - 도메인 예외는 extensions_code로 내려간다`() {
-        given(imageService.issueUploadUrl("image/svg+xml"))
+        given(imageService.createUploadUrl("image/svg+xml"))
             .willThrow(DomainException(ErrorCode.VALIDATION_ERROR, "허용되지 않는 contentType"))
 
         graphQlTester

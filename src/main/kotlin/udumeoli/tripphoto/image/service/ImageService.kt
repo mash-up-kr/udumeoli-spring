@@ -26,7 +26,7 @@ class ImageService(
      * uploaderId는 인증(카카오 OAuth) 도입 전까지 null.
      * 인증 도입 시 uploaderId를 필수화하고 [verifyUploaded]에 요청자 == uploader 검증을 추가해야 한다 (IDOR 방지).
      */
-    fun issueUploadUrl(
+    fun createUploadUrl(
         contentType: String,
         uploaderId: Long? = null,
     ): ImageUploadTarget {
@@ -47,7 +47,7 @@ class ImageService(
             )
         return ImageUploadTarget(
             imageId = image.id!!,
-            uploadUrl = storagePort.issueUploadUrl(objectKey, contentType),
+            uploadUrl = storagePort.createUploadUrl(objectKey, contentType),
         )
     }
 

@@ -50,7 +50,7 @@ class S3StorageAdapterIntegrationTest {
     @Test
     fun `presigned URL로 PUT 업로드하면 head로 확인된다`() {
         val key = randomKey()
-        val uploadUrl = adapter.issueUploadUrl(key, "image/jpeg")
+        val uploadUrl = adapter.createUploadUrl(key, "image/jpeg")
         val body = ByteArray(1024) { it.toByte() }
 
         assertThat(put(uploadUrl, "image/jpeg", body)).isEqualTo(200)
@@ -64,7 +64,7 @@ class S3StorageAdapterIntegrationTest {
     @Test
     fun `서명과 다른 contentType으로 PUT하면 거부된다 (contentType이 서명에 묶여 있음)`() {
         val key = randomKey()
-        val uploadUrl = adapter.issueUploadUrl(key, "image/jpeg")
+        val uploadUrl = adapter.createUploadUrl(key, "image/jpeg")
 
         assertThat(put(uploadUrl, "image/png", ByteArray(16))).isEqualTo(403)
         assertThat(adapter.head(key)).isNull()
@@ -78,7 +78,7 @@ class S3StorageAdapterIntegrationTest {
     @Test
     fun `delete는 없는 키가 섞여 있어도 성공한다 (고아 정리 재시도의 멱등성)`() {
         val key = randomKey()
-        put(adapter.issueUploadUrl(key, "image/webp"), "image/webp", ByteArray(16))
+        put(adapter.createUploadUrl(key, "image/webp"), "image/webp", ByteArray(16))
 
         adapter.delete(listOf(key, "original/ghost.webp"))
 

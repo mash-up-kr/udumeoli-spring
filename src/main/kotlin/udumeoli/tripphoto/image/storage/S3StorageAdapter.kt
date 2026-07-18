@@ -18,7 +18,7 @@ class S3StorageAdapter(
     private val s3Presigner: S3Presigner,
     private val properties: StorageProperties,
 ) : ImageStoragePort {
-    override fun issueUploadUrl(
+    override fun createUploadUrl(
         objectKey: String,
         contentType: String,
     ): String {

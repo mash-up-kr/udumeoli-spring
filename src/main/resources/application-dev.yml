@@ -1,0 +1,28 @@
+spring:
+  # Datasource (스키마는 Flyway가 관리)
+  datasource:
+    url: "jdbc:oracle:thin:@udumeolidb2_medium?TNS_ADMIN=/opt/oracle/wallet"
+    driver-class-name: oracle.jdbc.OracleDriver
+    username: APP_USER
+    password: "${DB_PASSWORD}"
+
+# PKCS12 wallet (GraalVM Native 호환)
+javax:
+  net:
+    ssl:
+      trustStore: /opt/oracle/wallet/truststore.jks
+      trustStorePassword: "${WALLET_PASSWORD}"
+      keyStore: /opt/oracle/wallet/keystore.jks
+      keyStorePassword: "${WALLET_PASSWORD}"
+
+# Object Storage — 운영(dev)에서는 env 필수. 기본값 없는 placeholder라 env가 빠지면 부팅 자체가 실패한다.
+# 이유: presign은 로컬 서명이라 base의 localhost 폴백으로도 "성공"해버려서, env를 깜빡한 배포가
+# localhost URL을 200으로 발급하고 image 행을 오염시키는 걸 조용히 지나치게 된다 (리뷰 finding #2).
+# 부팅 실패가 조용한 오동작보다 낫다.
+storage:
+  endpoint: "${STORAGE_ENDPOINT}"
+  region: "${STORAGE_REGION}"
+  bucket: "${STORAGE_BUCKET}"
+  access-key: "${STORAGE_ACCESS_KEY}"
+  secret-key: "${STORAGE_SECRET_KEY}"
+  public-base-url: "${STORAGE_PUBLIC_BASE_URL}"

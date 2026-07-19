@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: TripPhoto
+  # GraphQL
+  graphql:
+    graphiql:
+      enabled: true
+  # RestClient 기본 타임아웃 — 썸네일 서버가 느려도 요청 스레드를 오래 붙잡지 않게
+  http:
+    client:
+      connect-timeout: 2s
+      read-timeout: 5s
+
+# Actuator (Nginx가 /actuator/health만 통과시킴)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+# Object Storage — OCI Object Storage의 S3 호환 API (이미지 파이프라인)
+# 아래 기본값은 로컬 개발/테스트(MinIO) 편의용. presign은 로컬 서명 연산이라 이 폴백으로도
+# URL 발급이 "성공"해버리므로, 운영(dev 프로파일)은 application-dev.yml이
+# 기본값 없는 placeholder로 env를 필수 강제한다 — env 누락 시 부팅 실패 (fail-fast)
+storage:
+  endpoint: "${STORAGE_ENDPOINT:http://localhost:9000}"
+  region: "${STORAGE_REGION:us-east-1}"
+  bucket: "${STORAGE_BUCKET:photato-image}"
+  access-key: "${STORAGE_ACCESS_KEY:minioadmin}"
+  secret-key: "${STORAGE_SECRET_KEY:minioadmin}"
+  public-base-url: "${STORAGE_PUBLIC_BASE_URL:http://localhost:9000/photato-image}"
+  upload:
+    url-ttl: "${STORAGE_UPLOAD_URL_TTL:5m}"
+    # 업로드 최대 크기 20MB — 여행 사진 앱이라 모바일 고해상도·파노라마(48/108MP JPEG 8~25MB)까지 수용.
+    # presigned PUT이라 업로드 전 강제가 불가능해 사후 HEAD로 검증한다 (ImageService.verifyStoredObject).
+    # 업로드가 스토리지 직결이라 한도를 키워도 앱 메모리엔 영향 없음 — 비용은 스토리지/CDN 쪽.
+    max-size-bytes: "${STORAGE_UPLOAD_MAX_SIZE_BYTES:20971520}"
+
+# 썸네일 생성 서버(Go) base URL — 빈 값이면 생성 요청을 건너뛴다 (로컬 개발·테스트)
+# 완료 콜백은 없다: 썸네일 서버가 image.thumbnail_url을 DB에 직접 UPDATE한다
+thumbnail:
+  server-url: "${THUMBNAIL_SERVER_URL:}"

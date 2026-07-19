@@ -5,8 +5,8 @@ import java.time.Duration
 
 /**
  * Object Storage 접속 정보 (OCI Object Storage의 S3 호환 API).
- * 값은 env로 주입된다. base(application.properties)의 로컬 MinIO 폴백은 개발/테스트 편의용이고,
- * 운영(dev 프로파일)은 application-dev.properties가 기본값 없는 placeholder로 env를 필수 강제한다
+ * 값은 env로 주입된다. base(application.yml)의 로컬 MinIO 폴백은 개발/테스트 편의용이고,
+ * 운영(dev 프로파일)은 application-dev.yml이 기본값 없는 placeholder로 env를 필수 강제한다
  * — presign이 로컬 서명이라 폴백 값으로도 "성공"해버리는 조용한 오동작을 부팅 실패로 바꾸기 위함.
  */
 @ConfigurationProperties("storage")

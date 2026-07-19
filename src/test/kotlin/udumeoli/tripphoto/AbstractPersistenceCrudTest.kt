@@ -134,7 +134,7 @@ abstract class AbstractPersistenceCrudTest {
     fun `Image CRUD (nullable thumbnail-uploader)`() {
         image =
             imageRepository.save(
-                Image(originalUrl = "https://storage.example.com/o/1.jpg"),
+                Image(objectKey = "original/crud-test-1.jpg", originalUrl = "https://storage.example.com/o/1.jpg"),
             )
         assertThat(image.id).isNotNull()
         assertThat(image.thumbnailUrl).isNull()
@@ -149,7 +149,10 @@ abstract class AbstractPersistenceCrudTest {
                 ),
             )
         val found = imageRepository.findById(image.id!!).get()
-        assertThat(found.thumbnailUrl).isEqualTo("https://storage.example.com/t/1.jpg")
+        // thumbnail_url은 @ReadOnlyProperty — 썸네일 서버(Go)만 쓰는 컬럼이라 백엔드 UPDATE에서 제외된다.
+        // copy()로 값을 넣어 save해도 저장되지 않는 것이 계약 (덮어쓰기 사고 방지의 회귀 테스트)
+        assertThat(found.thumbnailUrl).isNull()
+        assertThat(found.uploaderId).isEqualTo(user.id)
         assertThat(imageRepository.findAllByUploaderId(user.id!!)).hasSize(1)
     }
 

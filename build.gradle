@@ -41,6 +41,15 @@ dependencies {
 	implementation 'org.flywaydb:flyway-core'
 	runtimeOnly 'org.flywaydb:flyway-database-oracle'
 
+	// Object Storage — OCI Object Storage의 S3 호환 API에 붙는 클라이언트 (이미지 파이프라인 D1)
+	// netty/apache 클라이언트를 빼고 JDK 기반 url-connection-client만 사용 — Native Image 호환 + 1GB RAM footprint
+	implementation platform('software.amazon.awssdk:bom:2.29.9')
+	implementation('software.amazon.awssdk:s3') {
+		exclude group: 'software.amazon.awssdk', module: 'netty-nio-client'
+		exclude group: 'software.amazon.awssdk', module: 'apache-client'
+	}
+	implementation 'software.amazon.awssdk:url-connection-client'
+
 	// Oracle JDBC (운영용)
 	implementation platform('com.oracle.database.jdbc:ojdbc-bom:21.14.0.0')
 	runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
@@ -57,6 +66,8 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
 	testImplementation 'org.testcontainers:junit-jupiter'
 	testImplementation 'org.testcontainers:oracle-free'
+	// S3 호환 스토리지 통합 테스트 (S3StorageAdapter — presign/HEAD/DELETE 왕복 검증)
+	testImplementation 'org.testcontainers:minio'
 }
 
 kotlin {

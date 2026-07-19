@@ -32,6 +32,6 @@ data class StorageProperties(
 
     companion object {
         private const val DEFAULT_URL_TTL_MINUTES = 5L
-        private const val DEFAULT_MAX_SIZE_BYTES = 10L * 1024 * 1024
+        private const val DEFAULT_MAX_SIZE_BYTES = 20L * 1024 * 1024
     }
 }

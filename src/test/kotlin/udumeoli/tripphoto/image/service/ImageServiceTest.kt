@@ -15,14 +15,14 @@ import udumeoli.tripphoto.common.error.ErrorCode
 import udumeoli.tripphoto.config.StorageProperties
 import udumeoli.tripphoto.image.entity.Image
 import udumeoli.tripphoto.image.repository.ImageRepository
-import udumeoli.tripphoto.image.storage.ImageStoragePort
+import udumeoli.tripphoto.image.storage.S3StorageAdapter
 import udumeoli.tripphoto.image.storage.StoredObjectMeta
-import udumeoli.tripphoto.image.thumbnail.ThumbnailPort
+import udumeoli.tripphoto.image.thumbnail.HttpThumbnailAdapter
 
 class ImageServiceTest {
     private val imageRepository = mockk<ImageRepository>()
-    private val storagePort = mockk<ImageStoragePort>()
-    private val thumbnailPort = mockk<ThumbnailPort>(relaxUnitFun = true)
+    private val storageAdapter = mockk<S3StorageAdapter>()
+    private val thumbnailAdapter = mockk<HttpThumbnailAdapter>(relaxUnitFun = true)
     private val properties =
         StorageProperties(
             endpoint = "http://localhost:9000",
@@ -33,14 +33,14 @@ class ImageServiceTest {
             publicBaseUrl = "https://cdn.example.com",
             upload = StorageProperties.UploadPolicy(maxSizeBytes = 1024),
         )
-    private val imageService = ImageService(imageRepository, storagePort, thumbnailPort, properties)
+    private val imageService = ImageService(imageRepository, storageAdapter, thumbnailAdapter, properties)
 
     @Test
     fun `createUploadUrl - image 행을 먼저 만들고 presigned URL을 반환한다`() {
         val savedImage = slot<Image>()
-        every { storagePort.publicUrl(any()) } answers { "https://cdn.example.com/${firstArg<String>()}" }
+        every { storageAdapter.publicUrl(any()) } answers { "https://cdn.example.com/${firstArg<String>()}" }
         every { imageRepository.save(capture(savedImage)) } answers { firstArg<Image>().copy(id = 1L) }
-        every { storagePort.createUploadUrl(any(), "image/jpeg") } returns "https://upload.example.com/presigned"
+        every { storageAdapter.createUploadUrl(any(), "image/jpeg") } returns "https://upload.example.com/presigned"
 
         val target = imageService.createUploadUrl("image/jpeg")
 
@@ -63,7 +63,7 @@ class ImageServiceTest {
     @Test
     fun `verifyUploaded - 업로드 확인된 이미지를 요청 순서대로 반환한다`() {
         every { imageRepository.findAllById(listOf(2L, 1L)) } returns listOf(image(1L), image(2L))
-        every { storagePort.head(any()) } returns StoredObjectMeta(contentLength = 512, contentType = "image/jpeg")
+        every { storageAdapter.head(any()) } returns StoredObjectMeta(contentLength = 512, contentType = "image/jpeg")
 
         val result = imageService.verifyUploaded(listOf(2L, 1L))
 
@@ -83,7 +83,7 @@ class ImageServiceTest {
     @Test
     fun `verifyUploaded - 행은 있지만 객체가 없으면(미업로드) IMAGE_NOT_UPLOADED`() {
         every { imageRepository.findAllById(listOf(1L)) } returns listOf(image(1L))
-        every { storagePort.head("original/1.jpg") } returns null
+        every { storageAdapter.head("original/1.jpg") } returns null
 
         assertThatThrownBy { imageService.verifyUploaded(listOf(1L)) }
             .isInstanceOfSatisfying(DomainException::class.java) {
@@ -94,28 +94,28 @@ class ImageServiceTest {
     @Test
     fun `verifyUploaded - 크기 초과면 VALIDATION_ERROR를 던지고 객체를 회수한다`() {
         every { imageRepository.findAllById(listOf(1L)) } returns listOf(image(1L))
-        every { storagePort.head("original/1.jpg") } returns
+        every { storageAdapter.head("original/1.jpg") } returns
             StoredObjectMeta(contentLength = 2048, contentType = "image/jpeg")
-        justRun { storagePort.delete(any()) }
+        justRun { storageAdapter.delete(any()) }
 
         assertThatThrownBy { imageService.verifyUploaded(listOf(1L)) }
             .isInstanceOfSatisfying(DomainException::class.java) {
                 assertThat(it.code).isEqualTo(ErrorCode.VALIDATION_ERROR)
             }
-        verify { storagePort.delete(listOf("original/1.jpg")) }
+        verify { storageAdapter.delete(listOf("original/1.jpg")) }
     }
 
     @Test
     fun `deleteImages - 객체(원본+썸네일)를 먼저 지우고 행을 지운다 (중간 실패 시 고아 배치가 재시도)`() {
         val withThumbnail = image(1L).copy(thumbnailUrl = "https://cdn.example.com/thumb_1_123.jpg")
         every { imageRepository.findAllById(listOf(1L, 2L)) } returns listOf(withThumbnail, image(2L))
-        justRun { storagePort.delete(any()) }
+        justRun { storageAdapter.delete(any()) }
         justRun { imageRepository.deleteAllById(any()) }
 
         imageService.deleteImages(listOf(1L, 2L))
 
         verifyOrder {
-            storagePort.delete(listOf("original/1.jpg", "thumb_1_123.jpg", "original/2.jpg"))
+            storageAdapter.delete(listOf("original/1.jpg", "thumb_1_123.jpg", "original/2.jpg"))
             imageRepository.deleteAllById(listOf(1L, 2L))
         }
     }
@@ -124,31 +124,31 @@ class ImageServiceTest {
     fun `deleteImages - 우리 스토리지 밖 thumbnailUrl은 삭제 대상에서 제외한다`() {
         val foreignThumbnail = image(1L).copy(thumbnailUrl = "https://other.example.com/thumb.jpg")
         every { imageRepository.findAllById(listOf(1L)) } returns listOf(foreignThumbnail)
-        justRun { storagePort.delete(any()) }
+        justRun { storageAdapter.delete(any()) }
         justRun { imageRepository.deleteAllById(any()) }
 
         imageService.deleteImages(listOf(1L))
 
-        verify { storagePort.delete(listOf("original/1.jpg")) }
+        verify { storageAdapter.delete(listOf("original/1.jpg")) }
     }
 
     @Test
     fun `deleteImages - 빈 목록이면 아무것도 하지 않는다`() {
         imageService.deleteImages(emptyList())
 
-        verify { listOf(imageRepository, storagePort) wasNot Called }
+        verify { listOf(imageRepository, storageAdapter) wasNot Called }
     }
 
     @Test
     fun `requestThumbnails - 이미지 id와 원본 URL로 요청한다 (썸네일 서버가 GET으로 내려받을 주소)`() {
         imageService.requestThumbnails(listOf(image(1L)))
 
-        verify { thumbnailPort.requestThumbnail(1L, "https://cdn.example.com/original/1.jpg") }
+        verify { thumbnailAdapter.requestThumbnail(1L, "https://cdn.example.com/original/1.jpg") }
     }
 
     @Test
     fun `requestThumbnails - 썸네일 요청 실패는 호출자에게 전파되지 않는다 (폴백 있는 작업)`() {
-        every { thumbnailPort.requestThumbnail(any(), any()) } throws IllegalStateException("thumbnail server down")
+        every { thumbnailAdapter.requestThumbnail(any(), any()) } throws IllegalStateException("thumbnail server down")
 
         imageService.requestThumbnails(listOf(image(1L)))
     }

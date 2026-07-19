@@ -7,15 +7,15 @@ import udumeoli.tripphoto.common.error.ErrorCode
 import udumeoli.tripphoto.config.StorageProperties
 import udumeoli.tripphoto.image.entity.Image
 import udumeoli.tripphoto.image.repository.ImageRepository
-import udumeoli.tripphoto.image.storage.ImageStoragePort
-import udumeoli.tripphoto.image.thumbnail.ThumbnailPort
+import udumeoli.tripphoto.image.storage.S3StorageAdapter
+import udumeoli.tripphoto.image.thumbnail.HttpThumbnailAdapter
 import java.util.UUID
 
 @Service
 class ImageService(
     private val imageRepository: ImageRepository,
-    private val storagePort: ImageStoragePort,
-    private val thumbnailPort: ThumbnailPort,
+    private val storageAdapter: S3StorageAdapter,
+    private val thumbnailAdapter: HttpThumbnailAdapter,
     private val properties: StorageProperties,
 ) {
     /**
@@ -41,13 +41,13 @@ class ImageService(
             imageRepository.save(
                 Image(
                     objectKey = objectKey,
-                    originalUrl = storagePort.publicUrl(objectKey),
+                    originalUrl = storageAdapter.publicUrl(objectKey),
                     uploaderId = uploaderId,
                 ),
             )
         return ImageUploadTarget(
             imageId = image.id!!,
-            uploadUrl = storagePort.createUploadUrl(objectKey, contentType),
+            uploadUrl = storageAdapter.createUploadUrl(objectKey, contentType),
         )
     }
 
@@ -74,7 +74,7 @@ class ImageService(
      */
     fun requestThumbnails(images: List<Image>) {
         images.forEach { image ->
-            runCatching { thumbnailPort.requestThumbnail(image.id!!, image.originalUrl) }
+            runCatching { thumbnailAdapter.requestThumbnail(image.id!!, image.originalUrl) }
                 .onFailure { log.warn("썸네일 생성 요청 실패: imageId={}", image.id, it) }
         }
     }
@@ -96,7 +96,7 @@ class ImageService(
 
     /** 원본과 (있다면) 썸네일 객체를 함께 삭제한다. */
     private fun deleteFromStorage(images: List<Image>) {
-        storagePort.delete(images.flatMap { listOfNotNull(it.objectKey, thumbnailKeyOf(it)) })
+        storageAdapter.delete(images.flatMap { listOfNotNull(it.objectKey, thumbnailKeyOf(it)) })
     }
 
     /**
@@ -111,11 +111,11 @@ class ImageService(
 
     private fun verifyStoredObject(image: Image) {
         val meta =
-            storagePort.head(image.objectKey)
+            storageAdapter.head(image.objectKey)
                 ?: throw DomainException(ErrorCode.IMAGE_NOT_UPLOADED, "원본이 업로드되지 않은 이미지: ${image.id}")
         if (meta.contentLength > properties.upload.maxSizeBytes) {
             // presigned PUT은 크기를 사전에 강제할 수 없어 여기서 사후 검증하고 초과분은 즉시 회수한다
-            storagePort.delete(listOf(image.objectKey))
+            storageAdapter.delete(listOf(image.objectKey))
             throw DomainException(
                 ErrorCode.VALIDATION_ERROR,
                 "파일 크기 초과: ${meta.contentLength} bytes (최대 ${properties.upload.maxSizeBytes} bytes)",

@@ -8,9 +8,15 @@ import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 
 /**
- * 썸네일 서버(Go) 호출 어댑터 — POST {server-url}/thumbnail 로 생성 요청을 접수시킨다.
- * - 202 = 큐 접수됨, 503 = 큐(버퍼 100) 가득참. 어느 쪽이든 결과는 돌아오지 않는다
- *   (완료 시 서버가 DB에 직접 기록 — [ThumbnailPort] 참고).
+ * 썸네일 생성 서버(Go, POST /thumbnail) 연동 — 생성 요청을 접수시킨다.
+ *
+ * 실제 서버의 동작 방식에 맞춘 계약이다:
+ * - 요청은 접수만 되고 백그라운드 워커가 순차 처리한다 — fire-and-forget.
+ *   202 = 큐 접수됨, 503 = 큐(버퍼 100) 가득참. 어느 쪽이든 결과는 돌아오지 않는다.
+ * - 완료 콜백이 없다. 서버가 image.thumbnail_url을 **DB에 직접 UPDATE**한다.
+ *   따라서 백엔드에는 완료를 수신하는 코드가 존재하지 않는다.
+ * - 어느 단계든 실패하면 재시도 없이 thumbnail_url이 null로 남고, 프론트가 원본으로 폴백한다.
+ * - imageUrl은 서버가 인증 없이 HTTP GET으로 내려받는다 → 원본이 공개 접근 가능해야 한다 (D2 전제).
  * - server-url 미설정(빈 값)이면 요청을 건너뛴다: 로컬 개발·테스트에서 썸네일 서버 없이 동작하기 위함.
  * - 4xx/5xx는 예외로 던진다 — 삼킬지 말지는 호출자(ImageService.requestThumbnails)가 결정한다.
  *
@@ -23,10 +29,10 @@ import org.springframework.web.client.RestClient
 class HttpThumbnailAdapter(
     private val properties: ThumbnailProperties,
     restClientBuilder: RestClient.Builder,
-) : ThumbnailPort {
+) {
     private val restClient = restClientBuilder.build()
 
-    override fun requestThumbnail(
+    fun requestThumbnail(
         imageId: Long,
         imageUrl: String,
     ) {

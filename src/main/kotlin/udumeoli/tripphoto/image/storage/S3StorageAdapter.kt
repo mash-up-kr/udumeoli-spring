@@ -12,13 +12,19 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest
 import udumeoli.tripphoto.config.StorageProperties
 
+/**
+ * Object Storage(S3 호환 API) 연동.
+ * 스토리지가 "업로드 여부"의 single source of truth다 — DB에 상태 컬럼을 두지 않고
+ * 필요한 시점에 [head]로 직접 확인한다 (V2에서 image.status 제거한 결정의 연장).
+ */
 @Component
 class S3StorageAdapter(
     private val s3Client: S3Client,
     private val s3Presigner: S3Presigner,
     private val properties: StorageProperties,
-) : ImageStoragePort {
-    override fun createUploadUrl(
+) {
+    /** objectKey에 PUT 업로드할 수 있는 presigned URL을 발급한다. */
+    fun createUploadUrl(
         objectKey: String,
         contentType: String,
     ): String {
@@ -39,7 +45,8 @@ class S3StorageAdapter(
         return s3Presigner.presignPutObject(presignRequest).url().toString()
     }
 
-    override fun head(objectKey: String): StoredObjectMeta? =
+    /** 객체 메타데이터 조회. 객체가 없으면(= 미업로드) null. */
+    fun head(objectKey: String): StoredObjectMeta? =
         try {
             val response =
                 s3Client.headObject(
@@ -57,7 +64,8 @@ class S3StorageAdapter(
             null
         }
 
-    override fun delete(objectKeys: Collection<String>) {
+    /** 객체 일괄 삭제. 존재하지 않는 키가 섞여 있어도 성공해야 한다 (고아 정리 재시도의 멱등성). */
+    fun delete(objectKeys: Collection<String>) {
         if (objectKeys.isEmpty()) {
             return
         }
@@ -79,5 +87,11 @@ class S3StorageAdapter(
         }
     }
 
-    override fun publicUrl(objectKey: String): String = "${properties.publicBaseUrl.trimEnd('/')}/$objectKey"
+    /** 조회용 공개 URL. */
+    fun publicUrl(objectKey: String): String = "${properties.publicBaseUrl.trimEnd('/')}/$objectKey"
 }
+
+data class StoredObjectMeta(
+    val contentLength: Long,
+    val contentType: String?,
+)

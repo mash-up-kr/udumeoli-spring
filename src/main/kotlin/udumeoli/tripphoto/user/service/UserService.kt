@@ -14,7 +14,7 @@ class UserService(
     private val serviceUserRepository: ServiceUserRepository,
 ) {
     @Transactional(readOnly = true)
-    fun me(currentUserId: Long): UserPayload = currentUser(currentUserId).toPayload()
+    fun me(currentUserId: Long): UserPayload = getCurrentUser(currentUserId).toPayload()
 
     @Transactional
     fun updateProfile(
@@ -23,14 +23,14 @@ class UserService(
         profileImageUrl: String?,
     ): UserPayload {
         validateNonEmpty(nickname, "닉네임을 입력해주세요.")
-        val user = currentUser(currentUserId)
+        val user = getCurrentUser(currentUserId)
         return serviceUserRepository
             .save(user.updateProfile(nickname, profileImageUrl))
             .toPayload()
     }
 
     @Transactional(readOnly = true)
-    fun currentUser(currentUserId: Long): ServiceUser =
+    fun getCurrentUser(currentUserId: Long): ServiceUser =
         serviceUserRepository.findById(currentUserId).orElseThrow {
             GraphQlDomainException(GraphQlErrorCode.UNAUTHENTICATED, "로그인이 필요합니다.")
         }

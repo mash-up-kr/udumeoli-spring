@@ -25,7 +25,7 @@ class PartyCommandService(
         currentUserId: Long,
         name: String,
     ): PartyPayload {
-        userService.currentUser(currentUserId)
+        userService.getCurrentUser(currentUserId)
         validateNonEmpty(name, "여행팟 이름을 입력해주세요.")
 
         val party = saveParty(currentUserId, name, inviteCodeIssuer.issue())
@@ -119,7 +119,7 @@ class PartyCommandService(
         party: Party,
         userId: Long,
     ) {
-        userService.currentUser(userId)
+        userService.getCurrentUser(userId)
         if (!party.isOwner(userId)) {
             throw GraphQlDomainException(GraphQlErrorCode.FORBIDDEN, "방장만 수행할 수 있습니다.")
         }

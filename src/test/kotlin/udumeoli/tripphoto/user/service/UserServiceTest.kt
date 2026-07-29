@@ -56,7 +56,7 @@ class UserServiceTest {
 
         val thrown =
             catchThrowable {
-                userService.currentUser(1)
+                userService.getCurrentUser(1)
             }
 
         assertThat(thrown).isInstanceOf(GraphQlDomainException::class.java)

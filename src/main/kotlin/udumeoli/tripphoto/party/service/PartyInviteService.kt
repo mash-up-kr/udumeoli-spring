@@ -26,7 +26,7 @@ class PartyInviteService(
         currentUserId: Long,
         inviteCode: String,
     ): PartyPayload {
-        userService.currentUser(currentUserId)
+        userService.getCurrentUser(currentUserId)
         joinPartyRateLimiter.check(currentUserId)
         validateInviteCode(inviteCode)
 
@@ -67,7 +67,7 @@ class PartyInviteService(
         party: Party,
         userId: Long,
     ) {
-        userService.currentUser(userId)
+        userService.getCurrentUser(userId)
         if (!party.isOwner(userId)) {
             throw GraphQlDomainException(GraphQlErrorCode.FORBIDDEN, "방장만 수행할 수 있습니다.")
         }

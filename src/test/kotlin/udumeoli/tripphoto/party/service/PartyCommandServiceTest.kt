@@ -50,7 +50,7 @@ class PartyCommandServiceTest {
         val savedPartySlot = slot<Party>()
         val savedMemberSlot = slot<PartyMember>()
 
-        every { userService.currentUser(1L) } returns owner
+        every { userService.getCurrentUser(1L) } returns owner
         every { partyRepository.existsByInviteCode(any()) } returns false
         every { partyRepository.save(capture(savedPartySlot)) } answers {
             savedPartySlot.captured.copy(id = 10, auditMetadata = audit())
@@ -79,7 +79,7 @@ class PartyCommandServiceTest {
     fun `초대코드 저장 중 유니크 인덱스와 충돌하면 도메인 예외를 던진다`() {
         val owner = user(1, "방장")
 
-        every { userService.currentUser(1L) } returns owner
+        every { userService.getCurrentUser(1L) } returns owner
         every { partyRepository.existsByInviteCode(any()) } returns false
         every { partyRepository.save(any<Party>()) } throws DuplicateKeyException("duplicate invite code")
 

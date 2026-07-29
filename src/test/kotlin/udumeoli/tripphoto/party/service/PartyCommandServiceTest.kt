@@ -4,10 +4,13 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.catchThrowable
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.dao.DuplicateKeyException
 import udumeoli.tripphoto.common.entity.AuditMetadata
+import udumeoli.tripphoto.common.graphql.GraphQlDomainException
+import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
 import udumeoli.tripphoto.party.entity.Party
 import udumeoli.tripphoto.party.entity.PartyMember
 import udumeoli.tripphoto.party.repository.PartyMemberRepository
@@ -36,7 +39,7 @@ class PartyCommandServiceTest {
                 partyRepository = partyRepository,
                 partyMemberRepository = partyMemberRepository,
                 userService = userService,
-                inviteCodeIssuer = InviteCodeIssuer(),
+                inviteCodeIssuer = InviteCodeIssuer(partyRepository),
                 partyQueryService = partyQueryService,
             )
     }
@@ -48,6 +51,7 @@ class PartyCommandServiceTest {
         val savedMemberSlot = slot<PartyMember>()
 
         every { userService.currentUser(1L) } returns owner
+        every { partyRepository.existsByInviteCode(any()) } returns false
         every { partyRepository.save(capture(savedPartySlot)) } answers {
             savedPartySlot.captured.copy(id = 10, auditMetadata = audit())
         }
@@ -72,31 +76,20 @@ class PartyCommandServiceTest {
     }
 
     @Test
-    fun `초대코드가 유니크 인덱스와 충돌하면 재시도한다`() {
+    fun `초대코드 저장 중 유니크 인덱스와 충돌하면 도메인 예외를 던진다`() {
         val owner = user(1, "방장")
-        var saveAttempts = 0
 
         every { userService.currentUser(1L) } returns owner
-        every { partyRepository.save(any<Party>()) } answers {
-            saveAttempts += 1
-            if (saveAttempts == 1) {
-                throw DuplicateKeyException("duplicate invite code")
+        every { partyRepository.existsByInviteCode(any()) } returns false
+        every { partyRepository.save(any<Party>()) } throws DuplicateKeyException("duplicate invite code")
+
+        val thrown =
+            catchThrowable {
+                partyCommandService.createParty(currentUserId = 1, name = "유지정민")
             }
-            firstArg<Party>().copy(id = 10, auditMetadata = audit())
-        }
-        every { partyMemberRepository.save(any<PartyMember>()) } answers {
-            firstArg<PartyMember>().copy(id = 100)
-        }
-        stubPartyPayload(
-            partyId = 10,
-            memberUserIds = listOf(1),
-            users = listOf(owner),
-        )
 
-        val result = partyCommandService.createParty(currentUserId = 1, name = "유지정민")
-
-        assertThat(result.name).isEqualTo("유지정민")
-        assertThat(saveAttempts).isEqualTo(2)
+        assertThat(thrown).isInstanceOf(GraphQlDomainException::class.java)
+        assertThat((thrown as GraphQlDomainException).code).isEqualTo(GraphQlErrorCode.INVITE_CODE_CONFLICT)
     }
 
     private fun stubPartyPayload(

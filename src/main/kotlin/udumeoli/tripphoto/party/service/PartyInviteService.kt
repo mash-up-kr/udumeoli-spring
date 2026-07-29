@@ -1,5 +1,6 @@
 package udumeoli.tripphoto.party.service
 
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import udumeoli.tripphoto.common.graphql.GraphQlDomainException
@@ -58,10 +59,8 @@ class PartyInviteService(
             }
         requireOwner(party, currentUserId)
 
-        return inviteCodeIssuer
-            .saveWithUniqueInviteCode { inviteCode ->
-                partyRepository.save(party.copy(inviteCode = inviteCode))
-            }.let { partyQueryService.toPayload(it) }
+        return saveInviteCode(party, inviteCodeIssuer.issue())
+            .let { partyQueryService.toPayload(it) }
     }
 
     private fun requireOwner(
@@ -105,4 +104,17 @@ class PartyInviteService(
         const val MAX_PARTY_MEMBERS = 6L
         private const val INVITE_CODE_LENGTH = 6
     }
+
+    private fun saveInviteCode(
+        party: Party,
+        inviteCode: String,
+    ): Party =
+        try {
+            partyRepository.save(party.copy(inviteCode = inviteCode))
+        } catch (_: DuplicateKeyException) {
+            throw GraphQlDomainException(
+                GraphQlErrorCode.INVITE_CODE_CONFLICT,
+                "초대코드 생성 중 충돌이 발생했습니다. 다시 시도해주세요.",
+            )
+        }
 }

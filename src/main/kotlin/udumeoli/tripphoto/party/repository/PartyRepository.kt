@@ -7,6 +7,8 @@ import udumeoli.tripphoto.party.entity.Party
 interface PartyRepository : ListCrudRepository<Party, Long> {
     fun findByInviteCode(inviteCode: String): Party?
 
+    fun existsByInviteCode(inviteCode: String): Boolean
+
     @Query("SELECT * FROM party WHERE invite_code = :inviteCode FOR UPDATE")
     fun findByInviteCodeForUpdate(inviteCode: String): Party?
 }

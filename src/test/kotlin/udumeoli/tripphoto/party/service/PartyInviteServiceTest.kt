@@ -44,7 +44,7 @@ class PartyInviteServiceTest {
                 partyMemberRepository = partyMemberRepository,
                 userService = userService,
                 joinPartyRateLimiter = joinPartyRateLimiter,
-                inviteCodeIssuer = InviteCodeIssuer(),
+                inviteCodeIssuer = InviteCodeIssuer(partyRepository),
                 partyQueryService = partyQueryService,
             )
     }

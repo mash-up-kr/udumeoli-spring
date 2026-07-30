@@ -14,11 +14,6 @@ import udumeoli.tripphoto.config.GraphQlConfig
 import udumeoli.tripphoto.image.service.ImageService
 import udumeoli.tripphoto.image.service.ImageUploadTarget
 
-/**
- * GraphQL 슬라이스 테스트 — 스키마 바인딩과 에러 규격(extensions.code)을 검증한다.
- * GraphQlConfig는 슬라이스 스캔에 포함되지 않아 명시적으로 Import한다
- * (커스텀 스칼라 Date/DateTime 와이어링이 없으면 schema.graphqls 빌드 자체가 실패).
- */
 @GraphQlTest(ImageMutationResolver::class)
 @Import(GraphQlConfig::class)
 class ImageMutationResolverTest {

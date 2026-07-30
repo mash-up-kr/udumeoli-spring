@@ -1,9 +1,5 @@
 package udumeoli.tripphoto.common.error
 
-/**
- * GraphQL errors의 extensions.code로 내려가는 코드 목록 — schema.graphqls [에러 규격]과 1:1.
- * 전송 계층(GraphQL/REST) 매핑은 각 계층이 담당하고 여기서는 코드만 정의한다.
- */
 enum class ErrorCode {
     UNAUTHENTICATED,
     FORBIDDEN,

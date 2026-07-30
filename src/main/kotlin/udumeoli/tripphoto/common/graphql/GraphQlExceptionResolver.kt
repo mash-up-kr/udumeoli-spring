@@ -9,10 +9,6 @@ import org.springframework.stereotype.Component
 import udumeoli.tripphoto.common.error.DomainException
 import udumeoli.tripphoto.common.error.ErrorCode
 
-/**
- * DomainException → GraphQL errors 변환 (schema.graphqls [에러 규격]).
- * 매핑되지 않은 예외는 null을 반환해 스프링 기본 처리(INTERNAL_ERROR, 메시지 미노출)에 맡긴다.
- */
 @Component
 class GraphQlExceptionResolver : DataFetcherExceptionResolverAdapter() {
     override fun resolveToSingleError(

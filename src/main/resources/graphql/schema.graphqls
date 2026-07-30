@@ -1,38 +1,3 @@
-# PHOTATO GraphQL 스키마 v1.2
-#
-# [인증 전제]
-# - 카카오 OAuth 로그인/토큰 발급은 REST로 처리한다. (POST /api/auth/kakao 등 — 명세 별도 확정)
-#   GraphQL은 로그인 이후, Authorization: Bearer <accessToken> 헤더로 사용자를 식별한다.
-# - 따라서 모든 Query/Mutation은 "로그인된 사용자" 기준으로 동작한다.
-#   토큰이 없거나 만료되면 GraphQL errors로 UNAUTHENTICATED 를 반환한다.
-#
-# [권한 전제]
-# - party 관련 조회/변경은 "요청자가 해당 팟의 멤버"임을 서버가 검증한다.
-#   멤버가 아닌 팟의 partyId로 요청하면 FORBIDDEN 을 반환한다.
-# - owner 전용 액션(deleteParty, kickMember, regenerateInviteCode)은
-#   요청자가 owner여야 하며, 아니면 FORBIDDEN.
-#
-# [에러 규격]
-# - GraphQL 표준 errors 배열을 사용하고, extensions.code 로 분기 가능한 코드를 내려준다.
-# - 사용하는 코드 목록:
-#   UNAUTHENTICATED / FORBIDDEN / PARTY_NOT_FOUND / TRIP_NOT_FOUND / IMAGE_NOT_FOUND
-#   / REGION_NOT_FOUND / MEMBER_NOT_FOUND / INVALID_INVITE_CODE / IMAGE_NOT_UPLOADED
-#   / CANNOT_REMOVE_OWNER / PARTY_HAS_MEMBERS / OWNER_CANNOT_LEAVE / RATE_LIMITED
-#   / VALIDATION_ERROR
-#
-# [이미지 업로드 플로우]
-# - createImageUploadUrl → 프론트가 uploadUrl로 PUT 업로드 → imageId를 createTrip/updateTrip에 전달.
-#   전달 시점에 서버가 업로드 여부를 검증한다 (미업로드면 IMAGE_NOT_UPLOADED).
-# - 썸네일은 백그라운드 생성. null이면 프론트가 originalUrl로 대체 표시.
-# - 이미지 내부 처리 상태는 GraphQL로 노출하지 않는다.
-#
-# [사진 변경 정책 — MVP: 여행당 1장]
-# - 사진 추가/삭제 뮤테이션은 두지 않는다. 사진 변경은 updateTrip.imageIds "통째 교체"로 일원화.
-# - 추후 여러 장 확장 시점에 addTripImages / deleteTripImage 부활 예정.
-#
-# [목록 반환 정책]
-# - v1의 모든 목록은 배열로 반환한다. (페이지네이션 없음)
-
 "ISO-8601 날짜. 예: \"2026-07-09\""
 scalar Date
 
@@ -66,8 +31,6 @@ type Query {
 
     "여행 사진 추출(티켓 이미지)용 통계"
     travelStats(partyId: ID!): TravelStats!
-
-    # regions 쿼리는 제거 확정 — 지역 데이터(코드↔이름, 폴리곤)는 프론트 정적 자산이 관리한다.
 }
 
 type Mutation {
@@ -133,11 +96,6 @@ type Mutation {
     사진 교체: imageIds 전달 시 기존 사진을 통째로 교체한다 (MVP: 1장). 기존 사진은 서버가 정리한다.
     """
     updateTrip(input: UpdateTripInput!): Trip!
-
-    # addTripImages / deleteTripImage 는 MVP "여행당 사진 1장" 정책과 충돌하여 v1에서 제외.
-    # 사진 변경은 updateTrip.imageIds 교체로 일원화. 추후 여러 장 확장 시 부활 예정.
-    # addTripImages(input: AddTripImagesInput!): Trip!
-    # deleteTripImage(input: DeleteTripImageInput!): Trip!
 
     """
     여행 삭제 — 삭제된 여행의 id를 반환.
@@ -257,13 +215,3 @@ input UpdateTripInput {
     "전달 시 기존 사진을 이 목록으로 통째로 교체 (MVP: 정확히 1개)"
     imageIds: [ID!]
 }
-
-# 추후 여러 장 확장 시 부활 예정
-# input AddTripImagesInput {
-#     tripId: ID!
-#     imageIds: [ID!]!
-# }
-# input DeleteTripImageInput {
-#     tripId: ID!
-#     imageId: ID!
-# }

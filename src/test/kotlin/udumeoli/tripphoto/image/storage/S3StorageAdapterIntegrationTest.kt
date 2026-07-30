@@ -18,11 +18,6 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.util.UUID
 
-/**
- * S3 호환 스토리지(MinIO)에 대한 어댑터 왕복 검증: presign → PUT → HEAD → DELETE.
- * OCI Object Storage도 동일한 S3 호환 API로 붙는다는 전제를 검증하는 테스트.
- * Docker 필요 — `./gradlew integrationTest`로 실행 (CI는 pr.yml).
- */
 @Tag("integration")
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

@@ -26,13 +26,6 @@ import udumeoli.tripphoto.user.repository.ServiceUserRepository
 import udumeoli.tripphoto.user.repository.SocialAccountRepository
 import java.time.LocalDate
 
-/**
- * 엔티티 8개 CRUD 공통 검증 (M0-4 완료 조건).
- * FK 의존 순서대로 생성하고 역순으로 삭제하므로 테스트 순서에 의미가 있다.
- * 데이터소스는 서브클래스가 결정한다:
- * - [PersistenceSmokeTest] H2 MODE=Oracle (빠른 로컬 피드백)
- * - [OraclePersistenceIntegrationTest] 실제 Oracle Free 컨테이너 (M0-5)
- */
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
@@ -119,11 +112,9 @@ abstract class AbstractPersistenceCrudTest {
     @Test
     @Order(5)
     fun `Region CRUD (자연키 - Persistable isNew)`() {
-        // 자연키 엔티티: 신규 행은 Region.of()로 만들어야 save()가 INSERT를 수행한다 (docs/kanban.md 함정 참고)
         val inserted = regionRepository.save(Region.of(regionCode, "서울특별시 종로구"))
         assertThat(inserted.auditMetadata.createdAt).isNotNull()
 
-        // copy()나 DB에서 읽어온 인스턴스는 isNew=false → save()가 UPDATE로 동작한다
         regionRepository.save(inserted.copy(regionName = "서울 종로구"))
         assertThat(regionRepository.findById(regionCode).get().regionName).isEqualTo("서울 종로구")
         assertThat(regionRepository.findByRegionName("서울 종로구")).isNotNull()
@@ -149,8 +140,6 @@ abstract class AbstractPersistenceCrudTest {
                 ),
             )
         val found = imageRepository.findById(image.id!!).get()
-        // thumbnail_url은 @ReadOnlyProperty — 썸네일 서버(Go)만 쓰는 컬럼이라 백엔드 UPDATE에서 제외된다.
-        // copy()로 값을 넣어 save해도 저장되지 않는 것이 계약 (덮어쓰기 사고 방지의 회귀 테스트)
         assertThat(found.thumbnailUrl).isNull()
         assertThat(found.uploaderId).isEqualTo(user.id)
         assertThat(imageRepository.findAllByUploaderId(user.id!!)).hasSize(1)
@@ -174,7 +163,6 @@ abstract class AbstractPersistenceCrudTest {
         assertThat(trip.auditMetadata.createdAt).isNotNull()
         assertThat(tripRepository.findAllByPartyId(party.id!!)).hasSize(1)
 
-        // createdBy 없이도 저장 가능해야 한다 (탈퇴 사용자 대비)
         val anonymous =
             tripRepository.save(
                 Trip(

@@ -10,7 +10,6 @@ import org.springframework.test.web.client.match.MockRestRequestMatchers.request
 import org.springframework.test.web.client.response.MockRestResponseCreators.withStatus
 import org.springframework.web.client.RestClient
 
-/** 썸네일 서버(Go)의 실제 요청 형식(POST /thumbnail, {id, image_url})과 맞는지 검증한다. */
 class HttpThumbnailAdapterTest {
     @Test
     fun `POST thumbnail로 id와 image_url을 보낸다`() {

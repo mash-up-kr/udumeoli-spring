@@ -4,6 +4,10 @@ spring:
   graphql:
     graphiql:
       enabled: true
+  http:
+    client:
+      connect-timeout: 2s
+      read-timeout: 5s
 
 management:
   endpoints:
@@ -18,3 +22,5 @@ storage:
   access-key: "${STORAGE_ACCESS_KEY:local}"
   secret-key: "${STORAGE_SECRET_KEY:local}"
   public-base-url: "${STORAGE_PUBLIC_BASE_URL:http://localhost:9000/photato-image}"
+thumbnail:
+  server-url: "${THUMBNAIL_SERVER_URL:}"

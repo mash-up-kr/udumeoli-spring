@@ -18,6 +18,7 @@ services:
       STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY}
       STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
       STORAGE_PUBLIC_BASE_URL: ${STORAGE_PUBLIC_BASE_URL}
+      THUMBNAIL_SERVER_URL: ${THUMBNAIL_SERVER_URL}
     volumes:
       # 서버의 wallet 디렉토리를 컨테이너 안으로 read-only 마운트
       - /opt/oracle/wallet:/opt/oracle/wallet:ro

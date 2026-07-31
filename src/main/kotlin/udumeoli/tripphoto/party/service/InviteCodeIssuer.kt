@@ -1,23 +1,26 @@
 package udumeoli.tripphoto.party.service
 
-import org.springframework.dao.DuplicateKeyException
 import org.springframework.stereotype.Component
-import udumeoli.tripphoto.party.entity.Party
+import udumeoli.tripphoto.common.graphql.GraphQlDomainException
+import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
+import udumeoli.tripphoto.party.repository.PartyRepository
 import java.security.SecureRandom
 
 @Component
-class InviteCodeIssuer {
-    fun saveWithUniqueInviteCode(save: (String) -> Party): Party {
+class InviteCodeIssuer(
+    private val partyRepository: PartyRepository,
+) {
+    fun issue(): String {
         repeat(INVITE_CODE_GENERATION_ATTEMPTS) {
-            try {
-                return save(generateInviteCode())
-            } catch (e: DuplicateKeyException) {
-                if (it == INVITE_CODE_GENERATION_ATTEMPTS - 1) {
-                    throw e
-                }
+            val inviteCode = generateInviteCode()
+            if (!partyRepository.existsByInviteCode(inviteCode)) {
+                return inviteCode
             }
         }
-        error("초대코드 생성에 실패했습니다.")
+        throw GraphQlDomainException(
+            GraphQlErrorCode.INVITE_CODE_CONFLICT,
+            "초대코드 생성 중 충돌이 발생했습니다. 다시 시도해주세요.",
+        )
     }
 
     private fun generateInviteCode(): String {

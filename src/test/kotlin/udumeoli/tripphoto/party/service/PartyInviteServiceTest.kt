@@ -44,7 +44,7 @@ class PartyInviteServiceTest {
                 partyMemberRepository = partyMemberRepository,
                 userService = userService,
                 joinPartyRateLimiter = joinPartyRateLimiter,
-                inviteCodeIssuer = InviteCodeIssuer(),
+                inviteCodeIssuer = InviteCodeIssuer(partyRepository),
                 partyQueryService = partyQueryService,
             )
     }
@@ -56,7 +56,7 @@ class PartyInviteServiceTest {
         val party = party()
         val savedMemberSlot = slot<PartyMember>()
 
-        every { userService.currentUser(2L) } returns member
+        every { userService.getCurrentUser(2L) } returns member
         every { joinPartyRateLimiter.check(2L) } just Runs
         every { partyRepository.findByInviteCodeForUpdate("abc123") } returns party
         every { partyMemberRepository.existsByPartyIdAndServiceUserId(10L, 2L) } returns false
@@ -82,7 +82,7 @@ class PartyInviteServiceTest {
     fun `이미 참여 중인 멤버의 초대코드 참여를 거절한다`() {
         val member = user(2, "멤버")
 
-        every { userService.currentUser(2L) } returns member
+        every { userService.getCurrentUser(2L) } returns member
         every { joinPartyRateLimiter.check(2L) } just Runs
         every { partyRepository.findByInviteCodeForUpdate("abc123") } returns party()
         every { partyMemberRepository.existsByPartyIdAndServiceUserId(10L, 2L) } returns true
@@ -102,7 +102,7 @@ class PartyInviteServiceTest {
     fun `여행팟 정원이 가득 차면 초대코드 참여를 거절한다`() {
         val member = user(7, "멤버")
 
-        every { userService.currentUser(7L) } returns member
+        every { userService.getCurrentUser(7L) } returns member
         every { joinPartyRateLimiter.check(7L) } just Runs
         every { partyRepository.findByInviteCodeForUpdate("abc123") } returns party()
         every { partyMemberRepository.existsByPartyIdAndServiceUserId(10L, 7L) } returns false

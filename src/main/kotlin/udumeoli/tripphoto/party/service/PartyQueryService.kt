@@ -20,7 +20,7 @@ class PartyQueryService(
 ) {
     @Transactional(readOnly = true)
     fun myParties(currentUserId: Long): List<PartyPayload> {
-        userService.currentUser(currentUserId)
+        userService.getCurrentUser(currentUserId)
         val partyIds = partyMemberRepository.findAllByServiceUserId(currentUserId).map { it.partyId }
         if (partyIds.isEmpty()) {
             return emptyList()
@@ -51,7 +51,7 @@ class PartyQueryService(
 
     fun toPayload(party: Party): PartyPayload {
         val partyId = requireNotNull(party.id)
-        val memberUserIds = memberUserIds(partyId)
+        val memberUserIds = getMemberUserIds(partyId)
         val usersById =
             userService
                 .findAllById((memberUserIds + party.ownerId).distinct())
@@ -70,7 +70,7 @@ class PartyQueryService(
         partyId: Long,
         userId: Long,
     ) {
-        userService.currentUser(userId)
+        userService.getCurrentUser(userId)
         if (!partyMemberRepository.existsByPartyIdAndServiceUserId(partyId, userId)) {
             throw GraphQlDomainException(GraphQlErrorCode.FORBIDDEN, "여행팟 멤버만 접근할 수 있습니다.")
         }
@@ -81,7 +81,7 @@ class PartyQueryService(
             GraphQlDomainException(GraphQlErrorCode.PARTY_NOT_FOUND, "여행팟을 찾을 수 없습니다.")
         }
 
-    private fun memberUserIds(partyId: Long): List<Long> =
+    private fun getMemberUserIds(partyId: Long): List<Long> =
         partyMemberRepository
             .findAllByPartyId(partyId)
             .sortedWith(compareBy<PartyMember> { it.serviceUserId }.thenBy { it.id ?: Long.MAX_VALUE })

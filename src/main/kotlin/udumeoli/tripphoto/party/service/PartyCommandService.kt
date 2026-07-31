@@ -1,5 +1,6 @@
 package udumeoli.tripphoto.party.service
 
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import udumeoli.tripphoto.common.graphql.GraphQlDomainException
@@ -24,19 +25,10 @@ class PartyCommandService(
         currentUserId: Long,
         name: String,
     ): PartyPayload {
-        userService.currentUser(currentUserId)
+        userService.getCurrentUser(currentUserId)
         validateNonEmpty(name, "여행팟 이름을 입력해주세요.")
 
-        val party =
-            inviteCodeIssuer.saveWithUniqueInviteCode { inviteCode ->
-                partyRepository.save(
-                    Party(
-                        partyName = name,
-                        inviteCode = inviteCode,
-                        ownerId = currentUserId,
-                    ),
-                )
-            }
+        val party = saveParty(currentUserId, name, inviteCodeIssuer.issue())
 
         partyMemberRepository.save(
             PartyMember(
@@ -127,7 +119,7 @@ class PartyCommandService(
         party: Party,
         userId: Long,
     ) {
-        userService.currentUser(userId)
+        userService.getCurrentUser(userId)
         if (!party.isOwner(userId)) {
             throw GraphQlDomainException(GraphQlErrorCode.FORBIDDEN, "방장만 수행할 수 있습니다.")
         }
@@ -141,4 +133,24 @@ class PartyCommandService(
             throw GraphQlDomainException(GraphQlErrorCode.VALIDATION_ERROR, message)
         }
     }
+
+    private fun saveParty(
+        currentUserId: Long,
+        name: String,
+        inviteCode: String,
+    ): Party =
+        try {
+            partyRepository.save(
+                Party(
+                    partyName = name,
+                    inviteCode = inviteCode,
+                    ownerId = currentUserId,
+                ),
+            )
+        } catch (_: DuplicateKeyException) {
+            throw GraphQlDomainException(
+                GraphQlErrorCode.INVITE_CODE_CONFLICT,
+                "초대코드 생성 중 충돌이 발생했습니다. 다시 시도해주세요.",
+            )
+        }
 }

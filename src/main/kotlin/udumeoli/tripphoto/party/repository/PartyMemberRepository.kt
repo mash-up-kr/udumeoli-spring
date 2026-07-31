@@ -8,6 +8,13 @@ interface PartyMemberRepository : ListCrudRepository<PartyMember, Long> {
 
     fun findAllByServiceUserId(serviceUserId: Long): List<PartyMember>
 
+    fun findByPartyIdAndServiceUserId(
+        partyId: Long,
+        serviceUserId: Long,
+    ): PartyMember?
+
+    fun countByPartyId(partyId: Long): Long
+
     fun existsByPartyIdAndServiceUserId(
         partyId: Long,
         serviceUserId: Long,

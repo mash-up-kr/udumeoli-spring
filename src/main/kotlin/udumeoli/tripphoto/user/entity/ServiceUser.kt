@@ -15,4 +15,13 @@ data class ServiceUser(
     val profileImageUrl: String = "DEFAULT",
     @Embedded.Empty(prefix = "")
     val auditMetadata: AuditMetadata = AuditMetadata(),
-)
+) {
+    fun updateProfile(
+        nickname: String,
+        profileImageUrl: String?,
+    ): ServiceUser =
+        copy(
+            nickname = nickname,
+            profileImageUrl = profileImageUrl ?: this.profileImageUrl,
+        )
+}

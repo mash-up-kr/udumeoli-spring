@@ -35,12 +35,18 @@ class PartyQueryService(
         currentUserId: Long,
         partyId: Long,
     ): PartyPayload {
-        val party =
-            partyRepository.findById(partyId).orElseThrow {
-                GraphQlDomainException(GraphQlErrorCode.PARTY_NOT_FOUND, "여행팟을 찾을 수 없습니다.")
-            }
+        val party = requireParty(partyId)
         requireMember(partyId, currentUserId)
         return toPayload(party)
+    }
+
+    @Transactional(readOnly = true)
+    fun isOwner(
+        partyId: Long,
+        userId: Long,
+    ): Boolean {
+        userService.getCurrentUser(userId)
+        return requireParty(partyId).isOwner(userId)
     }
 
     fun toPayload(party: Party): PartyPayload {
@@ -69,6 +75,11 @@ class PartyQueryService(
             throw GraphQlDomainException(GraphQlErrorCode.FORBIDDEN, "여행팟 멤버만 접근할 수 있습니다.")
         }
     }
+
+    private fun requireParty(partyId: Long): Party =
+        partyRepository.findById(partyId).orElseThrow {
+            GraphQlDomainException(GraphQlErrorCode.PARTY_NOT_FOUND, "여행팟을 찾을 수 없습니다.")
+        }
 
     private fun getMemberUserIds(partyId: Long): List<Long> =
         partyMemberRepository

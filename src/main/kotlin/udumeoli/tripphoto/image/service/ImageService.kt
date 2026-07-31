@@ -39,6 +39,28 @@ class ImageService(
         )
     }
 
+    fun getImages(imageIds: List<Long>): List<Image> {
+        val imagesById = imageRepository.findAllById(imageIds).associateBy { requireNotNull(it.id) }
+        val missingIds = imageIds.filterNot(imagesById::containsKey)
+        if (missingIds.isNotEmpty()) {
+            throw GraphQlDomainException(
+                GraphQlErrorCode.IMAGE_NOT_FOUND,
+                "존재하지 않는 이미지입니다: $missingIds",
+            )
+        }
+        return imageIds.map(imagesById::getValue)
+    }
+
+    @Suppress("UnusedParameter")
+    fun requestThumbnails(images: List<Image>) = Unit
+
+    fun deleteImages(imageIds: Collection<Long>) {
+        if (imageIds.isEmpty()) {
+            return
+        }
+        imageRepository.deleteAllById(imageIds)
+    }
+
     companion object {
         private val ALLOWED_CONTENT_TYPES =
             mapOf(

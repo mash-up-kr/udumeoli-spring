@@ -45,7 +45,7 @@ class PartyQueryService(
         partyId: Long,
         userId: Long,
     ): Boolean {
-        userService.currentUser(userId)
+        userService.getCurrentUser(userId)
         return requireParty(partyId).isOwner(userId)
     }
 

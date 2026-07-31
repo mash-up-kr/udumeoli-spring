@@ -194,8 +194,8 @@ abstract class AbstractPersistenceCrudTest {
             )
         assertThat(tripImage.id).isNotNull()
         assertThat(tripImage.createdAt).isNotNull()
-        assertThat(tripImageRepository.existsByTripIdAndImageId(trip.id!!, image.id!!)).isTrue()
         assertThat(tripImageRepository.findAllByTripId(trip.id!!)).hasSize(1)
+        assertThat(tripImageRepository.findAllByTripId(trip.id!!).map { it.imageId }).containsExactly(image.id)
     }
 
     @Test

@@ -17,6 +17,10 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeParseException
 import java.util.Locale
 
+/**
+ * schema.graphqls의 커스텀 스칼라(Date, DateTime) 런타임 바인딩.
+ * graphql-java-extended-scalars 의존성 없이 직접 정의해 Native Image 호환성을 확보한다.
+ */
 @Configuration
 class GraphQlConfig {
     @Bean

@@ -57,17 +57,7 @@ dependencies {
 	runtimeOnly 'com.oracle.database.security:osdt_core'
 	runtimeOnly 'com.oracle.database.security:osdt_cert'
 
-	// (선택) Kotest + MockK
-	testImplementation 'io.kotest:kotest-runner-junit5:5.9.1'
-	testImplementation 'io.kotest:kotest-assertions-core:5.9.1'
 	testImplementation 'io.mockk:mockk:1.13.13'
-
-	// Testcontainers — 실제 Oracle Free 컨테이너 통합 테스트 (M0-5, 버전은 Boot BOM 관리)
-	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
-	testImplementation 'org.testcontainers:junit-jupiter'
-	testImplementation 'org.testcontainers:oracle-free'
-	// S3 호환 스토리지 통합 테스트 (S3StorageAdapter — presign/HEAD/DELETE 왕복 검증)
-	testImplementation 'org.testcontainers:minio'
 }
 
 kotlin {
@@ -76,23 +66,8 @@ kotlin {
 	}
 }
 
-// 단위/H2 스모크 테스트 — 'integration' 태그는 제외해서 Docker 없이도 빠르게 돈다
 tasks.named('test') {
-	useJUnitPlatform {
-		excludeTags 'integration'
-	}
-}
-
-// Oracle Free 컨테이너 통합 테스트 — Docker 필요. CI(pr.yml)와 로컬(./gradlew integrationTest)에서 명시적으로 실행
-tasks.register('integrationTest', Test) {
-	description = 'Testcontainers 기반 Oracle 통합 테스트'
-	group = 'verification'
-	useJUnitPlatform {
-		includeTags 'integration'
-	}
-	testClassesDirs = sourceSets.test.output.classesDirs
-	classpath = sourceSets.test.runtimeClasspath
-	shouldRunAfter tasks.named('test')
+	useJUnitPlatform()
 }
 
 // ktlint 설정

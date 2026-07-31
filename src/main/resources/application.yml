@@ -4,30 +4,17 @@ spring:
   graphql:
     graphiql:
       enabled: true
-  http:
-    client:
-      connect-timeout: 2s
-      read-timeout: 5s
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
-  endpoint:
-    health:
-      show-details: never
+        include: health
 
 storage:
   endpoint: "${STORAGE_ENDPOINT:http://localhost:9000}"
   region: "${STORAGE_REGION:us-east-1}"
   bucket: "${STORAGE_BUCKET:photato-image}"
-  access-key: "${STORAGE_ACCESS_KEY:minioadmin}"
-  secret-key: "${STORAGE_SECRET_KEY:minioadmin}"
+  access-key: "${STORAGE_ACCESS_KEY:local}"
+  secret-key: "${STORAGE_SECRET_KEY:local}"
   public-base-url: "${STORAGE_PUBLIC_BASE_URL:http://localhost:9000/photato-image}"
-  upload:
-    url-ttl: "${STORAGE_UPLOAD_URL_TTL:5m}"
-    max-size-bytes: "${STORAGE_UPLOAD_MAX_SIZE_BYTES:20971520}"
-
-thumbnail:
-  server-url: "${THUMBNAIL_SERVER_URL:}"

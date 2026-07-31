@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: TripPhoto
+  graphql:
+    graphiql:
+      enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+storage:
+  endpoint: "${STORAGE_ENDPOINT:http://localhost:9000}"
+  region: "${STORAGE_REGION:us-east-1}"
+  bucket: "${STORAGE_BUCKET:photato-image}"
+  access-key: "${STORAGE_ACCESS_KEY:local}"
+  secret-key: "${STORAGE_SECRET_KEY:local}"
+  public-base-url: "${STORAGE_PUBLIC_BASE_URL:http://localhost:9000/photato-image}"

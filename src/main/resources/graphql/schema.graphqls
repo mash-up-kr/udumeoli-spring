@@ -66,8 +66,6 @@ type Query {
 
     "여행 사진 추출(티켓 이미지)용 통계"
     travelStats(partyId: ID!): TravelStats!
-
-    # regions 쿼리는 제거 확정 — 지역 데이터(코드↔이름, 폴리곤)는 프론트 정적 자산이 관리한다.
 }
 
 type Mutation {
@@ -136,11 +134,6 @@ type Mutation {
     사진 교체: imageIds 전달 시 기존 사진을 통째로 교체한다 (MVP: 1장). 기존 사진은 서버가 정리한다.
     """
     updateTrip(input: UpdateTripInput!): Trip!
-
-    # addTripImages / deleteTripImage 는 MVP "여행당 사진 1장" 정책과 충돌하여 v1에서 제외.
-    # 사진 변경은 updateTrip.imageIds 교체로 일원화. 추후 여러 장 확장 시 부활 예정.
-    # addTripImages(input: AddTripImagesInput!): Trip!
-    # deleteTripImage(input: DeleteTripImageInput!): Trip!
 
     """
     여행 삭제 — 삭제된 여행의 id를 반환.
@@ -260,13 +253,3 @@ input UpdateTripInput {
     "전달 시 기존 사진을 이 목록으로 통째로 교체 (MVP: 정확히 1개)"
     imageIds: [ID!]
 }
-
-# 추후 여러 장 확장 시 부활 예정
-# input AddTripImagesInput {
-#     tripId: ID!
-#     imageIds: [ID!]!
-# }
-# input DeleteTripImageInput {
-#     tripId: ID!
-#     imageId: ID!
-# }

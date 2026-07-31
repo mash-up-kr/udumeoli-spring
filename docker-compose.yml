@@ -12,6 +12,12 @@ services:
       # 비밀번호는 같은 폴더의 .env 에서 주입 (git 에는 커밋 금지)
       DB_PASSWORD: ${DB_PASSWORD}
       WALLET_PASSWORD: ${WALLET_PASSWORD}
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT}
+      STORAGE_REGION: ${STORAGE_REGION}
+      STORAGE_BUCKET: ${STORAGE_BUCKET}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
+      STORAGE_PUBLIC_BASE_URL: ${STORAGE_PUBLIC_BASE_URL}
     volumes:
       # 서버의 wallet 디렉토리를 컨테이너 안으로 read-only 마운트
       - /opt/oracle/wallet:/opt/oracle/wallet:ro

@@ -30,7 +30,7 @@ class PartyGraphQlController(
     ): List<PartyPayload> = partyQueryService.myParties(requireCurrentUserId(currentUserId))
 
     @QueryMapping
-    fun party(
+    fun partyDetail(
         @ContextValue(
             name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
             required = false,
@@ -40,7 +40,7 @@ class PartyGraphQlController(
     ): PartyPayload = partyQueryService.party(requireCurrentUserId(currentUserId), partyId)
 
     @QueryMapping
-    fun partyPreview(
+    fun partyParticipate(
         @ContextValue(
             name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
             required = false,

@@ -1,13 +1,12 @@
 package udumeoli.tripphoto.trip.dto
 
-import udumeoli.tripphoto.region.dto.RegionPayload
 import udumeoli.tripphoto.trip.entity.TripKeyword
 import java.time.LocalDate
 import java.time.LocalDateTime
 
 data class TripPayload(
     val id: Long,
-    val region: RegionPayload,
+    val regionCode: Int,
     val keyword: TripKeyword,
     val startDate: LocalDate,
     val endDate: LocalDate,

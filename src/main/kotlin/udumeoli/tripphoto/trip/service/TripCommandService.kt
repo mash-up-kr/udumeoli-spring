@@ -35,8 +35,8 @@ class TripCommandService(
         input: CreateTripInput,
     ): TripPayload {
         partyQueryService.requireMember(input.partyId, currentUserId)
-        requireImages(input.images)
-        if (!regionRepository.existsById(input.regionCode)) {
+        val regionCode = input.regionCode.toString()
+        if (!regionRepository.existsById(regionCode)) {
             throw GraphQlDomainException(
                 GraphQlErrorCode.REGION_NOT_FOUND,
                 "존재하지 않는 지역입니다: ${input.regionCode}",
@@ -53,14 +53,14 @@ class TripCommandService(
             tripRepository.save(
                 Trip(
                     partyId = input.partyId,
-                    regionCode = input.regionCode,
+                    regionCode = regionCode,
                     keyword = input.keyword,
                     startDate = input.startDate,
                     endDate = input.endDate,
                     createdBy = currentUserId,
                 ),
             )
-        writeRecord(requireNotNull(trip.id), currentUserId, input.images, input.comment)
+        writeRecord(requireNotNull(trip.id), currentUserId, input.image, input.comment)
         return tripQueryService.toPayload(currentUserId, trip)
     }
 
@@ -71,9 +71,8 @@ class TripCommandService(
     ): TripPayload {
         val trip = tripQueryService.requireTrip(input.tripId)
         partyQueryService.requireMember(trip.partyId, currentUserId)
-        requireImages(input.images)
 
-        writeRecord(input.tripId, currentUserId, input.images, input.comment)
+        writeRecord(input.tripId, currentUserId, input.image, input.comment)
         return tripQueryService.toPayload(currentUserId, trip)
     }
 
@@ -101,10 +100,11 @@ class TripCommandService(
         return tripQueryService.toPayload(currentUserId, trip)
     }
 
+    /** 기록은 사진 1장 — 다시 부르면 기존 사진을 새 사진으로 교체한다. */
     private fun writeRecord(
         tripId: Long,
         currentUserId: Long,
-        images: List<TripImageInput>,
+        image: TripImageInput,
         comment: String?,
     ) {
         val existing = tripRecordRepository.findByTripIdAndServiceUserId(tripId, currentUserId)
@@ -113,19 +113,6 @@ class TripCommandService(
                 existing?.copy(comment = comment)
                     ?: TripRecord(tripId = tripId, serviceUserId = currentUserId, comment = comment),
             )
-        tripImageWriter.setImages(requireNotNull(record.id), images)
-    }
-
-    private fun requireImages(images: List<TripImageInput>) {
-        if (images.isEmpty()) {
-            throw GraphQlDomainException(GraphQlErrorCode.VALIDATION_ERROR, "사진을 1장 이상 올려주세요.")
-        }
-        val imageIds = images.map { it.imageId }
-        if (imageIds.distinct().size != imageIds.size) {
-            throw GraphQlDomainException(
-                GraphQlErrorCode.VALIDATION_ERROR,
-                "같은 사진을 여러 번 등록할 수 없습니다.",
-            )
-        }
+        tripImageWriter.setImages(requireNotNull(record.id), listOf(image))
     }
 }

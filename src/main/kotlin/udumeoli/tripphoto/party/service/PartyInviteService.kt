@@ -78,7 +78,6 @@ class PartyInviteService(
         return PartyPreviewPayload(
             name = party.partyName,
             memberCount = memberUserIds.size,
-            maxMemberCount = MAX_PARTY_MEMBERS.toInt(),
             members = memberUserIds.mapNotNull { usersById[it] }.map { it.toPayload() },
         )
     }

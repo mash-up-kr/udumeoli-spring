@@ -6,8 +6,6 @@ import udumeoli.tripphoto.common.graphql.GraphQlDomainException
 import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
 import udumeoli.tripphoto.image.dto.toPayload
 import udumeoli.tripphoto.party.service.PartyQueryService
-import udumeoli.tripphoto.region.dto.toPayload
-import udumeoli.tripphoto.region.repository.RegionRepository
 import udumeoli.tripphoto.trip.dto.TravelStatsPayload
 import udumeoli.tripphoto.trip.dto.TripPayload
 import udumeoli.tripphoto.trip.dto.TripRecordPayload
@@ -29,7 +27,6 @@ import java.time.temporal.ChronoUnit
 class TripQueryService(
     private val tripRepository: TripRepository,
     private val tripRecordReader: TripRecordReader,
-    private val regionRepository: RegionRepository,
     private val userService: UserService,
     private val partyQueryService: PartyQueryService,
 ) {
@@ -89,10 +86,6 @@ class TripQueryService(
         }
 
         val bundle = tripRecordReader.read(trips.map { requireNotNull(it.id) })
-        val regionsByCode =
-            regionRepository
-                .findAllById(trips.map { it.regionCode }.distinct())
-                .associateBy { it.regionCode }
         val memberIdsByPartyId =
             trips
                 .map { it.partyId }
@@ -104,12 +97,6 @@ class TripQueryService(
 
         return trips.map { trip ->
             val tripId = requireNotNull(trip.id)
-            val region =
-                regionsByCode[trip.regionCode]
-                    ?: throw GraphQlDomainException(
-                        GraphQlErrorCode.REGION_NOT_FOUND,
-                        "지역을 찾을 수 없습니다: ${trip.regionCode}",
-                    )
             val records =
                 buildRecords(
                     currentUserId = currentUserId,
@@ -121,7 +108,7 @@ class TripQueryService(
 
             TripPayload(
                 id = tripId,
-                region = region.toPayload(),
+                regionCode = trip.regionCode.toInt(),
                 keyword = trip.keyword,
                 startDate = trip.startDate,
                 endDate = trip.endDate,
@@ -154,7 +141,6 @@ class TripQueryService(
                 TripRecordPayload(
                     member = member.toPayload(),
                     recorded = record != null,
-                    isMine = userId == currentUserId,
                     comment = record?.comment,
                     images =
                         images

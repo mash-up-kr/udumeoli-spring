@@ -23,7 +23,7 @@ class TripGraphQlController(
     private val tripRegionQueryService: TripRegionQueryService,
 ) {
     @QueryMapping
-    fun trips(
+    fun partyTripsAll(
         @ContextValue(
             name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
             required = false,
@@ -33,18 +33,19 @@ class TripGraphQlController(
     ): List<TripPayload> = tripQueryService.trips(requireCurrentUserId(currentUserId), partyId)
 
     @QueryMapping
-    fun tripsByRegion(
+    fun partyTripsByRegion(
         @ContextValue(
             name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
             required = false,
         )
         currentUserId: Long?,
         @Argument partyId: Long,
-        @Argument regionCode: String,
-    ): List<TripPayload> = tripQueryService.tripsByRegion(requireCurrentUserId(currentUserId), partyId, regionCode)
+        @Argument regionCode: Int,
+    ): List<TripPayload> =
+        tripQueryService.tripsByRegion(requireCurrentUserId(currentUserId), partyId, regionCode.toString())
 
     @QueryMapping
-    fun regionCards(
+    fun partyTripsByRegionsStats(
         @ContextValue(
             name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
             required = false,
@@ -54,7 +55,7 @@ class TripGraphQlController(
     ): List<RegionCardPayload> = tripRegionQueryService.regionCards(requireCurrentUserId(currentUserId), partyId)
 
     @QueryMapping
-    fun travelStats(
+    fun partyTravelStats(
         @ContextValue(
             name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
             required = false,

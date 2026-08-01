@@ -4,8 +4,6 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import udumeoli.tripphoto.image.dto.toPayload
 import udumeoli.tripphoto.party.service.PartyQueryService
-import udumeoli.tripphoto.region.dto.toPayload
-import udumeoli.tripphoto.region.repository.RegionRepository
 import udumeoli.tripphoto.trip.dto.RegionCardPayload
 import udumeoli.tripphoto.trip.repository.TripRepository
 import udumeoli.tripphoto.user.service.UserService
@@ -17,7 +15,6 @@ import udumeoli.tripphoto.user.service.UserService
 class TripRegionQueryService(
     private val tripRepository: TripRepository,
     private val tripRecordReader: TripRecordReader,
-    private val regionRepository: RegionRepository,
     private val userService: UserService,
     private val partyQueryService: PartyQueryService,
 ) {
@@ -35,25 +32,20 @@ class TripRegionQueryService(
 
         val bundle = tripRecordReader.read(trips.map { requireNotNull(it.id) })
         val myTripIds = bundle.recordedTripIdsOf(currentUserId)
-        val regionsByCode =
-            regionRepository
-                .findAllById(trips.map { it.regionCode }.distinct())
-                .associateBy { it.regionCode }
         val usersById = userService.findAllById(bundle.uploaderIds).associateBy { requireNotNull(it.id) }
 
         return trips
             .groupBy { it.regionCode }
             .entries
             .sortedByDescending { (_, regionTrips) -> regionTrips.maxOf { it.startDate } }
-            .mapNotNull { (regionCode, regionTrips) ->
-                val region = regionsByCode[regionCode] ?: return@mapNotNull null
+            .map { (regionCode, regionTrips) ->
                 val images =
                     bundle.toImages(
                         regionTrips.flatMap { bundle.tripImagesOfTrip(requireNotNull(it.id)) },
                     )
 
                 RegionCardPayload(
-                    region = region.toPayload(),
+                    regionCode = regionCode.toInt(),
                     visitCount = regionTrips.size,
                     images =
                         images

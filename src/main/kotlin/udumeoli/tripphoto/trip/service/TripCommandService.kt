@@ -7,18 +7,23 @@ import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
 import udumeoli.tripphoto.party.service.PartyQueryService
 import udumeoli.tripphoto.region.repository.RegionRepository
 import udumeoli.tripphoto.trip.dto.CreateTripInput
+import udumeoli.tripphoto.trip.dto.RecordTripInput
+import udumeoli.tripphoto.trip.dto.TripImageInput
 import udumeoli.tripphoto.trip.dto.TripPayload
-import udumeoli.tripphoto.trip.dto.UpdateTripInput
 import udumeoli.tripphoto.trip.entity.Trip
+import udumeoli.tripphoto.trip.entity.TripRecord
+import udumeoli.tripphoto.trip.repository.TripRecordRepository
 import udumeoli.tripphoto.trip.repository.TripRepository
-import java.time.LocalDate
 
 /**
- * 여행 등록/수정/삭제. 입력 검증과 권한 확인을 하고 trip 행을 쓴다.
+ * - createTrip: 새 방문 + 내 기록
+ * - recordTrip: 이미 있는 방문에 내 기록 (재호출 시 통째 교체)
+ * - deleteTripRecord: 내 기록 삭제, 마지막 기록이면 여행도 함께 정리
  */
 @Service
 class TripCommandService(
     private val tripRepository: TripRepository,
+    private val tripRecordRepository: TripRecordRepository,
     private val regionRepository: RegionRepository,
     private val partyQueryService: PartyQueryService,
     private val tripQueryService: TripQueryService,
@@ -30,121 +35,97 @@ class TripCommandService(
         input: CreateTripInput,
     ): TripPayload {
         partyQueryService.requireMember(input.partyId, currentUserId)
-        requireSingleImage(input.imageIds)
-        requireRegionExists(input.regionCode)
-        validateColor(input.color)
-        requirePeriod(input.startDate, input.endDate)
+        requireImages(input.images)
+        if (!regionRepository.existsById(input.regionCode)) {
+            throw GraphQlDomainException(
+                GraphQlErrorCode.REGION_NOT_FOUND,
+                "존재하지 않는 지역입니다: ${input.regionCode}",
+            )
+        }
+        if (input.startDate.isAfter(input.endDate)) {
+            throw GraphQlDomainException(
+                GraphQlErrorCode.VALIDATION_ERROR,
+                "여행 시작일은 종료일보다 늦을 수 없습니다.",
+            )
+        }
 
         val trip =
             tripRepository.save(
                 Trip(
                     partyId = input.partyId,
                     regionCode = input.regionCode,
-                    color = input.color,
+                    keyword = input.keyword,
                     startDate = input.startDate,
                     endDate = input.endDate,
                     createdBy = currentUserId,
                 ),
             )
-        tripImageWriter.setImages(requireNotNull(trip.id), input.imageIds)
-        return tripQueryService.toPayload(trip)
+        writeRecord(requireNotNull(trip.id), currentUserId, input.images, input.comment)
+        return tripQueryService.toPayload(currentUserId, trip)
     }
 
     @Transactional
-    fun updateTrip(
+    fun recordTrip(
         currentUserId: Long,
-        input: UpdateTripInput,
+        input: RecordTripInput,
     ): TripPayload {
         val trip = tripQueryService.requireTrip(input.tripId)
-        requireCreatorOrOwner(trip, currentUserId)
+        partyQueryService.requireMember(trip.partyId, currentUserId)
+        requireImages(input.images)
 
-        input.imageIds?.let { requireSingleImage(it) }
-        input.regionCode?.let { requireRegionExists(it) }
-        input.color?.let { validateColor(it) }
-        val startDate = input.startDate ?: trip.startDate
-        val endDate = input.endDate ?: trip.endDate
-        requirePeriod(startDate, endDate)
-
-        val updated =
-            tripRepository.save(
-                trip.copy(
-                    regionCode = input.regionCode ?: trip.regionCode,
-                    color = input.color ?: trip.color,
-                    startDate = startDate,
-                    endDate = endDate,
-                ),
-            )
-
-        input.imageIds?.let { tripImageWriter.setImages(input.tripId, it) }
-        return tripQueryService.toPayload(updated)
+        writeRecord(input.tripId, currentUserId, input.images, input.comment)
+        return tripQueryService.toPayload(currentUserId, trip)
     }
 
     @Transactional
-    fun deleteTrip(
+    fun deleteTripRecord(
         currentUserId: Long,
         tripId: Long,
-    ): Long {
+    ): TripPayload? {
         val trip = tripQueryService.requireTrip(tripId)
-        requireCreatorOrOwner(trip, currentUserId)
-
-        tripImageWriter.setImages(tripId, emptyList())
-        tripRepository.delete(trip)
-        return tripId
-    }
-
-    private fun requireCreatorOrOwner(
-        trip: Trip,
-        currentUserId: Long,
-    ) {
         partyQueryService.requireMember(trip.partyId, currentUserId)
-        if (trip.createdBy == currentUserId) {
-            return
+
+        val record =
+            tripRecordRepository.findByTripIdAndServiceUserId(tripId, currentUserId)
+                ?: throw GraphQlDomainException(
+                    GraphQlErrorCode.TRIP_RECORD_NOT_FOUND,
+                    "삭제할 내 기록이 없습니다.",
+                )
+        tripImageWriter.setImages(requireNotNull(record.id), emptyList())
+        tripRecordRepository.delete(record)
+
+        if (tripRecordRepository.findAllByTripId(tripId).isEmpty()) {
+            tripRepository.delete(trip)
+            return null
         }
-        if (!partyQueryService.isOwner(trip.partyId, currentUserId)) {
-            throw GraphQlDomainException(
-                GraphQlErrorCode.FORBIDDEN,
-                "여행 등록자 또는 방장만 수정/삭제할 수 있습니다.",
-            )
-        }
+        return tripQueryService.toPayload(currentUserId, trip)
     }
 
-    private fun requireSingleImage(imageIds: List<Long>) {
-        if (imageIds.size != 1) {
-            throw GraphQlDomainException(
-                GraphQlErrorCode.VALIDATION_ERROR,
-                "여행 사진은 1장이어야 합니다. (전달: ${imageIds.size}장)",
-            )
-        }
-    }
-
-    private fun requireRegionExists(regionCode: String) {
-        if (!regionRepository.existsById(regionCode)) {
-            throw GraphQlDomainException(GraphQlErrorCode.REGION_NOT_FOUND, "존재하지 않는 지역입니다: $regionCode")
-        }
-    }
-
-    private fun validateColor(color: String) {
-        if (!COLOR_PATTERN.matches(color)) {
-            throw GraphQlDomainException(
-                GraphQlErrorCode.VALIDATION_ERROR,
-                "색상은 #RRGGBB 형식의 hex 여야 합니다: $color",
-            )
-        }
-    }
-
-    private fun requirePeriod(
-        startDate: LocalDate,
-        endDate: LocalDate,
+    private fun writeRecord(
+        tripId: Long,
+        currentUserId: Long,
+        images: List<TripImageInput>,
+        comment: String?,
     ) {
-        if (startDate.isAfter(endDate)) {
-            throw GraphQlDomainException(
-                GraphQlErrorCode.VALIDATION_ERROR,
-                "여행 시작일은 종료일보다 늦을 수 없습니다.",
+        val existing = tripRecordRepository.findByTripIdAndServiceUserId(tripId, currentUserId)
+        val record =
+            tripRecordRepository.save(
+                existing?.copy(comment = comment)
+                    ?: TripRecord(tripId = tripId, serviceUserId = currentUserId, comment = comment),
             )
-        }
+        tripImageWriter.setImages(requireNotNull(record.id), images)
     }
 
-    companion object {
-        private val COLOR_PATTERN = Regex("^#[0-9A-Fa-f]{6}$")
+    private fun requireImages(images: List<TripImageInput>) {
+        if (images.isEmpty()) {
+            throw GraphQlDomainException(GraphQlErrorCode.VALIDATION_ERROR, "사진을 1장 이상 올려주세요.")
+        }
+        val imageIds = images.map { it.imageId }
+        if (imageIds.distinct().size != imageIds.size) {
+            throw GraphQlDomainException(
+                GraphQlErrorCode.VALIDATION_ERROR,
+                "같은 사진을 여러 번 등록할 수 없습니다.",
+            )
+        }
     }
 }

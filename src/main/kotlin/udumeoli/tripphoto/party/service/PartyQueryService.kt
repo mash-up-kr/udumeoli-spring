@@ -11,6 +11,7 @@ import udumeoli.tripphoto.party.entity.PartyMember
 import udumeoli.tripphoto.party.repository.PartyMemberRepository
 import udumeoli.tripphoto.party.repository.PartyRepository
 import udumeoli.tripphoto.user.service.UserService
+import java.time.LocalDateTime
 
 @Service
 class PartyQueryService(
@@ -51,7 +52,7 @@ class PartyQueryService(
 
     fun toPayload(party: Party): PartyPayload {
         val partyId = requireNotNull(party.id)
-        val memberUserIds = getMemberUserIds(partyId)
+        val memberUserIds = memberUserIdsInJoinOrder(partyId)
         val usersById =
             userService
                 .findAllById((memberUserIds + party.ownerId).distinct())
@@ -76,14 +77,23 @@ class PartyQueryService(
         }
     }
 
+    /**
+     * 팟원을 가입 순서로 반환한다 (owner가 항상 첫 번째).
+     */
+    fun memberUserIdsInJoinOrder(partyId: Long): List<Long> =
+        partyMemberRepository
+            .findAllByPartyId(partyId)
+            .sortedWith(JOIN_ORDER)
+            .map { it.serviceUserId }
+
     private fun requireParty(partyId: Long): Party =
         partyRepository.findById(partyId).orElseThrow {
             GraphQlDomainException(GraphQlErrorCode.PARTY_NOT_FOUND, "여행팟을 찾을 수 없습니다.")
         }
 
-    private fun getMemberUserIds(partyId: Long): List<Long> =
-        partyMemberRepository
-            .findAllByPartyId(partyId)
-            .sortedWith(compareBy<PartyMember> { it.serviceUserId }.thenBy { it.id ?: Long.MAX_VALUE })
-            .map { it.serviceUserId }
+    companion object {
+        private val JOIN_ORDER: Comparator<PartyMember> =
+            compareBy<PartyMember> { it.createdAt ?: LocalDateTime.MIN }
+                .thenBy { it.id ?: Long.MAX_VALUE }
+    }
 }

@@ -9,6 +9,7 @@ import udumeoli.tripphoto.common.graphql.requireCurrentUserId
 import udumeoli.tripphoto.config.CurrentUserGraphQlInterceptor
 import udumeoli.tripphoto.party.dto.KickMemberInput
 import udumeoli.tripphoto.party.dto.PartyPayload
+import udumeoli.tripphoto.party.dto.PartyPreviewPayload
 import udumeoli.tripphoto.party.service.PartyCommandService
 import udumeoli.tripphoto.party.service.PartyInviteService
 import udumeoli.tripphoto.party.service.PartyQueryService
@@ -37,6 +38,16 @@ class PartyGraphQlController(
         currentUserId: Long?,
         @Argument partyId: Long,
     ): PartyPayload = partyQueryService.party(requireCurrentUserId(currentUserId), partyId)
+
+    @QueryMapping
+    fun partyPreview(
+        @ContextValue(
+            name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
+            required = false,
+        )
+        currentUserId: Long?,
+        @Argument inviteCode: String,
+    ): PartyPreviewPayload = partyInviteService.partyPreview(requireCurrentUserId(currentUserId), inviteCode)
 
     @MutationMapping
     fun createParty(

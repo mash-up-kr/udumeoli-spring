@@ -6,10 +6,12 @@ import org.springframework.transaction.annotation.Transactional
 import udumeoli.tripphoto.common.graphql.GraphQlDomainException
 import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
 import udumeoli.tripphoto.party.dto.PartyPayload
+import udumeoli.tripphoto.party.dto.PartyPreviewPayload
 import udumeoli.tripphoto.party.entity.Party
 import udumeoli.tripphoto.party.entity.PartyMember
 import udumeoli.tripphoto.party.repository.PartyMemberRepository
 import udumeoli.tripphoto.party.repository.PartyRepository
+import udumeoli.tripphoto.user.dto.toPayload
 import udumeoli.tripphoto.user.service.UserService
 
 @Service
@@ -46,6 +48,39 @@ class PartyInviteService(
 
         partyMemberRepository.save(PartyMember(partyId = partyId, serviceUserId = currentUserId))
         return partyQueryService.toPayload(party)
+    }
+
+    @Transactional(readOnly = true)
+    fun partyPreview(
+        currentUserId: Long,
+        inviteCode: String,
+    ): PartyPreviewPayload {
+        userService.getCurrentUser(currentUserId)
+        joinPartyRateLimiter.check(currentUserId)
+        validateInviteCode(inviteCode)
+
+        val party =
+            partyRepository.findByInviteCode(inviteCode)
+                ?: throw GraphQlDomainException(
+                    GraphQlErrorCode.INVALID_INVITE_CODE,
+                    "존재하지 않는 초대코드입니다.",
+                )
+        val partyId = requireNotNull(party.id)
+
+        requireNotAlreadyJoined(
+            partyMemberRepository.existsByPartyIdAndServiceUserId(partyId, currentUserId),
+        )
+
+        val memberUserIds = partyQueryService.memberUserIdsInJoinOrder(partyId)
+        requirePartyCapacity(memberUserIds.size.toLong())
+
+        val usersById = userService.findAllById(memberUserIds).associateBy { requireNotNull(it.id) }
+        return PartyPreviewPayload(
+            name = party.partyName,
+            memberCount = memberUserIds.size,
+            maxMemberCount = MAX_PARTY_MEMBERS.toInt(),
+            members = memberUserIds.mapNotNull { usersById[it] }.map { it.toPayload() },
+        )
     }
 
     @Transactional

@@ -3,6 +3,7 @@ package udumeoli.tripphoto.config
 import org.springframework.graphql.server.WebGraphQlInterceptor
 import org.springframework.graphql.server.WebGraphQlRequest
 import org.springframework.graphql.server.WebGraphQlResponse
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
 
@@ -12,8 +13,12 @@ class CurrentUserGraphQlInterceptor : WebGraphQlInterceptor {
         request: WebGraphQlRequest,
         chain: WebGraphQlInterceptor.Chain,
     ): Mono<WebGraphQlResponse> {
-        val currentUserId = request.headers.getFirst(CURRENT_USER_ID_HEADER)?.toLongOrNull()
-
+        val currentUserId =
+            SecurityContextHolder
+                .getContext()
+                .authentication
+                ?.name
+                ?.toLongOrNull()
         if (currentUserId != null) {
             request.configureExecutionInput { _, builder ->
                 builder
@@ -21,12 +26,10 @@ class CurrentUserGraphQlInterceptor : WebGraphQlInterceptor {
                     .build()
             }
         }
-
         return chain.next(request)
     }
 
     companion object {
-        const val CURRENT_USER_ID_HEADER = "X-User-Id"
         const val CURRENT_USER_ID_CONTEXT_KEY = "currentUserId"
     }
 }

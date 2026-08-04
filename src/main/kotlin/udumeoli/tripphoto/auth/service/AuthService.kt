@@ -29,22 +29,39 @@ class AuthService(
     @Transactional
     fun prepareOAuthLogin(profile: SocialProfile): String {
         val socialAccount = socialAccountRepository.findByProviderAndProviderUserId(profile.provider, profile.providerUserId)
-        val result =
-            if (socialAccount == null) { // 신규 회원일 시 임시 토큰 발급
-                LoginCodeExchangeResponse(
-                    status = AuthFlowStatus.SIGNUP_REQUIRED,
-                    signupToken = jwtTokenService.issueSignupToken(profile),
+        val payload =
+            if (socialAccount == null) {
+                LoginCodePayload.SignupRequired(
+                    provider = profile.provider,
+                    providerUserId = profile.providerUserId,
                 )
             } else {
-                LoginCodeExchangeResponse(
-                    status = AuthFlowStatus.AUTHENTICATED,
-                    tokens = issueAndStoreTokenPair(socialAccount.serviceUserId),
-                )
+                LoginCodePayload.Authenticated(serviceUserId = socialAccount.serviceUserId)
             }
-        return loginCodeStore.issue(result)
+        return loginCodeStore.issue(payload)
     }
 
-    fun exchangeLoginCode(code: String): LoginCodeExchangeResponse = loginCodeStore.consume(code)
+    @Transactional
+    fun exchangeLoginCode(code: String): LoginCodeExchangeResponse =
+        when (val payload = loginCodeStore.consume(code)) {
+            is LoginCodePayload.Authenticated ->
+                LoginCodeExchangeResponse(
+                    status = AuthFlowStatus.AUTHENTICATED,
+                    tokens = issueAndStoreTokenPair(payload.serviceUserId),
+                )
+
+            is LoginCodePayload.SignupRequired ->
+                LoginCodeExchangeResponse(
+                    status = AuthFlowStatus.SIGNUP_REQUIRED,
+                    signupToken =
+                        jwtTokenService.issueSignupToken(
+                            SocialProfile(
+                                provider = payload.provider,
+                                providerUserId = payload.providerUserId,
+                            ),
+                        ),
+                )
+        }
 
     @Transactional
     fun completeSignup(

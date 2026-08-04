@@ -50,7 +50,7 @@ class AuthFlowIntegrationTest {
     fun `신규 소셜 사용자는 닉네임 입력 후 가입하고 앱 토큰을 받는다`() {
         val code =
             authService.prepareOAuthLogin(
-                SocialProfile("kakao", "kakao-123", "member@example.com", "profile.png"),
+                SocialProfile("kakao", "kakao-123"),
             )
 
         val exchange = authService.exchangeLoginCode(code)
@@ -62,7 +62,7 @@ class AuthFlowIntegrationTest {
 
         assertThat(serviceUserRepository.findById(accessJwt.subject.toLong()).orElseThrow().nickname).isEqualTo("직접 입력한 닉네임")
         assertThat(socialAccountRepository.findByProviderAndProviderUserId("kakao", "kakao-123")?.providerEmail)
-            .isEqualTo("member@example.com")
+            .isNull()
         assertThat(refreshTokenRepository.findAll()).hasSize(1)
     }
 
@@ -73,8 +73,11 @@ class AuthFlowIntegrationTest {
         authService.completeSignup(signupToken, "회원")
 
         val loginCode = authService.prepareOAuthLogin(SocialProfile("kakao", "kakao-456"))
+        assertThat(refreshTokenRepository.findAll()).hasSize(1)
+
         val login = authService.exchangeLoginCode(loginCode)
         assertThat(login.status).isEqualTo(AuthFlowStatus.AUTHENTICATED)
+        assertThat(refreshTokenRepository.findAll()).hasSize(2)
 
         val originalRefreshToken = requireNotNull(login.tokens).refreshToken
         val rotated = authService.refresh(originalRefreshToken)
@@ -88,5 +91,20 @@ class AuthFlowIntegrationTest {
         authService.exchangeLoginCode(code)
 
         assertThatThrownBy { authService.exchangeLoginCode(code) }.isInstanceOf(AuthException::class.java)
+    }
+
+    @Test
+    fun `신규 소셜 사용자는 로그인 코드 교환 전까지 signup token을 발급하지 않는다`() {
+        val code = authService.prepareOAuthLogin(SocialProfile("kakao", "signup-later"))
+
+        assertThat(refreshTokenRepository.findAll()).isEmpty()
+        assertThat(serviceUserRepository.findAll()).isEmpty()
+
+        val exchange = authService.exchangeLoginCode(code)
+
+        assertThat(exchange.status).isEqualTo(AuthFlowStatus.SIGNUP_REQUIRED)
+        assertThat(exchange.signupToken).isNotBlank()
+        assertThat(refreshTokenRepository.findAll()).isEmpty()
+        assertThat(serviceUserRepository.findAll()).isEmpty()
     }
 }

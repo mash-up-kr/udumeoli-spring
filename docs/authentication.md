@@ -5,8 +5,9 @@
 1. 프론트에서 백엔드의 `GET /oauth2/authorization/kakao`로 이동한다.
 2. 카카오 인증이 끝나면 백엔드는 프론트의 `/login/callback?code=...`으로 리다이렉트한다.
 3. 프론트는 받은 1회용 코드를 `POST /api/auth/exchange`로 교환한다.
-4. `AUTHENTICATED`이면 앱 access/refresh token을 사용한다.
-5. `SIGNUP_REQUIRED`이면 사용자가 닉네임을 직접 입력한 뒤 `POST /api/auth/signup`을 호출한다.
+4. 백엔드는 교환 시점에 `AUTHENTICATED`이면 앱 access/refresh token을 발급한다.
+5. 백엔드는 교환 시점에 `SIGNUP_REQUIRED`이면 signup token을 발급한다.
+6. `SIGNUP_REQUIRED`이면 사용자가 닉네임을 직접 입력한 뒤 `POST /api/auth/signup`을 호출한다.
 
 카카오가 반환한 닉네임은 회원가입 닉네임으로 사용하지 않는다. 신규 사용자는 반드시 서비스에서 닉네임을 직접 입력해야 한다.
 
@@ -54,11 +55,7 @@ sequenceDiagram
             Note over Auth,FE: 기존 사용자 로그인 처리
             DB-->>Auth: social_account 있음
 
-            Auth->>Jwt: 내부 access token + refresh token 발급
-            Jwt-->>Auth: TokenResponse
-            Auth->>DB: refresh token hash 저장
-
-            Auth->>CodeStore: AUTHENTICATED 결과를 1회용 code로 저장
+            Auth->>CodeStore: AUTHENTICATED 사용자 id를 1회용 code로 저장
             CodeStore-->>Auth: loginCode
 
             BE->>BE: OAuth 세션 무효화
@@ -67,7 +64,11 @@ sequenceDiagram
             FE->>BE: POST /api/auth/exchange<br/>{ code }
             BE->>Auth: exchangeLoginCode(code)
             Auth->>CodeStore: consume(code)
-            CodeStore-->>Auth: AUTHENTICATED 결과 반환 후 삭제
+            CodeStore-->>Auth: AUTHENTICATED 사용자 id 반환 후 삭제
+
+            Auth->>Jwt: 내부 access token + refresh token 발급
+            Jwt-->>Auth: TokenResponse
+            Auth->>DB: refresh token hash 저장
 
             Auth-->>FE: status=AUTHENTICATED<br/>accessToken, refreshToken
             FE->>FE: accessToken 보관
@@ -78,10 +79,7 @@ sequenceDiagram
             Note over Auth,FE: 신규 사용자 회원가입 처리
             DB-->>Auth: social_account 없음
 
-            Auth->>Jwt: signup token 발급
-            Jwt-->>Auth: signupToken
-
-            Auth->>CodeStore: SIGNUP_REQUIRED 결과를 1회용 code로 저장
+            Auth->>CodeStore: SIGNUP_REQUIRED 소셜 식별자를 1회용 code로 저장
             CodeStore-->>Auth: loginCode
 
             BE->>BE: OAuth 세션 무효화
@@ -90,7 +88,10 @@ sequenceDiagram
             FE->>BE: POST /api/auth/exchange<br/>{ code }
             BE->>Auth: exchangeLoginCode(code)
             Auth->>CodeStore: consume(code)
-            CodeStore-->>Auth: SIGNUP_REQUIRED 결과 반환 후 삭제
+            CodeStore-->>Auth: SIGNUP_REQUIRED 소셜 식별자 반환 후 삭제
+
+            Auth->>Jwt: signup token 발급
+            Jwt-->>Auth: signupToken
 
             Auth-->>FE: status=SIGNUP_REQUIRED<br/>signupToken
 

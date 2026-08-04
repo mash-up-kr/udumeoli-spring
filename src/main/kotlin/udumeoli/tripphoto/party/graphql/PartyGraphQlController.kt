@@ -1,13 +1,10 @@
 package udumeoli.tripphoto.party.graphql
 
 import org.springframework.graphql.data.method.annotation.Argument
-import org.springframework.graphql.data.method.annotation.ContextValue
 import org.springframework.graphql.data.method.annotation.MutationMapping
 import org.springframework.graphql.data.method.annotation.QueryMapping
 import org.springframework.stereotype.Controller
-import udumeoli.tripphoto.common.graphql.GraphQlDomainException
-import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
-import udumeoli.tripphoto.config.CurrentUserGraphQlInterceptor
+import udumeoli.tripphoto.auth.annotation.LoginUser
 import udumeoli.tripphoto.party.dto.KickMemberInput
 import udumeoli.tripphoto.party.dto.PartyPayload
 import udumeoli.tripphoto.party.service.PartyCommandService
@@ -22,89 +19,53 @@ class PartyGraphQlController(
 ) {
     @QueryMapping
     fun myParties(
-        @ContextValue(
-            name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
-            required = false,
-        )
-        currentUserId: Long?,
-    ): List<PartyPayload> = partyQueryService.myParties(requireCurrentUserId(currentUserId))
+        @LoginUser currentUserId: Long,
+    ): List<PartyPayload> = partyQueryService.myParties(currentUserId)
 
     @QueryMapping
     fun party(
-        @ContextValue(
-            name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
-            required = false,
-        )
-        currentUserId: Long?,
+        @LoginUser currentUserId: Long,
         @Argument partyId: Long,
-    ): PartyPayload = partyQueryService.party(requireCurrentUserId(currentUserId), partyId)
+    ): PartyPayload = partyQueryService.party(currentUserId, partyId)
 
     @MutationMapping
     fun createParty(
-        @ContextValue(
-            name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
-            required = false,
-        )
-        currentUserId: Long?,
+        @LoginUser currentUserId: Long,
         @Argument name: String,
-    ): PartyPayload = partyCommandService.createParty(requireCurrentUserId(currentUserId), name)
+    ): PartyPayload = partyCommandService.createParty(currentUserId, name)
 
     @MutationMapping
     fun joinParty(
-        @ContextValue(
-            name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
-            required = false,
-        )
-        currentUserId: Long?,
+        @LoginUser currentUserId: Long,
         @Argument inviteCode: String,
-    ): PartyPayload = partyInviteService.joinParty(requireCurrentUserId(currentUserId), inviteCode)
+    ): PartyPayload = partyInviteService.joinParty(currentUserId, inviteCode)
 
     @MutationMapping
     fun regenerateInviteCode(
-        @ContextValue(
-            name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
-            required = false,
-        )
-        currentUserId: Long?,
+        @LoginUser currentUserId: Long,
         @Argument partyId: Long,
-    ): PartyPayload = partyInviteService.regenerateInviteCode(requireCurrentUserId(currentUserId), partyId)
+    ): PartyPayload = partyInviteService.regenerateInviteCode(currentUserId, partyId)
 
     @MutationMapping
     fun leaveParty(
-        @ContextValue(
-            name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
-            required = false,
-        )
-        currentUserId: Long?,
+        @LoginUser currentUserId: Long,
         @Argument partyId: Long,
-    ): Long = partyCommandService.leaveParty(requireCurrentUserId(currentUserId), partyId)
+    ): Long = partyCommandService.leaveParty(currentUserId, partyId)
 
     @MutationMapping
     fun deleteParty(
-        @ContextValue(
-            name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
-            required = false,
-        )
-        currentUserId: Long?,
+        @LoginUser currentUserId: Long,
         @Argument partyId: Long,
-    ): Long = partyCommandService.deleteParty(requireCurrentUserId(currentUserId), partyId)
+    ): Long = partyCommandService.deleteParty(currentUserId, partyId)
 
     @MutationMapping
     fun kickMember(
-        @ContextValue(
-            name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
-            required = false,
-        )
-        currentUserId: Long?,
+        @LoginUser currentUserId: Long,
         @Argument input: KickMemberInput,
     ): PartyPayload =
         partyCommandService.kickMember(
-            currentUserId = requireCurrentUserId(currentUserId),
+            currentUserId = currentUserId,
             partyId = input.partyId,
             targetUserId = input.targetUserId,
         )
-
-    private fun requireCurrentUserId(currentUserId: Long?): Long =
-        currentUserId
-            ?: throw GraphQlDomainException(GraphQlErrorCode.UNAUTHENTICATED, "로그인이 필요합니다.")
 }

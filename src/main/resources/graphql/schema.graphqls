@@ -214,7 +214,8 @@ type TripMemberRecord {
     member: User!
     recorded: Boolean!
     comment: String
-    images: [Image!]!
+    "[정책] 기록 1건에 사진 1장. 아직 안 올린 멤버(recorded=false)는 null."
+    image: Image
 }
 
 "여행 이미지 상세 보기 진입 화면의 지역 카드."

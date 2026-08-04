@@ -107,7 +107,10 @@ CREATE TABLE trip_image (
     image_id           NUMBER(19)     NOT NULL,
     image_date         DATE,
     created_at         TIMESTAMP      DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    CONSTRAINT uq_trip_image UNIQUE (trip_record_id, image_id)
+    -- [정책] 기록 1건 = 사진 1장. createTrip/recordTrip이 사진 1장만 받고,
+    --   재호출 시 기존 사진을 교체하므로 trip_record_id 자체를 유일키로 둔다.
+    --   나중에 여러 장으로 넓힐 때는 이 제약을 (trip_record_id, image_id)로 되돌리면 된다.
+    CONSTRAINT uq_trip_image_record UNIQUE (trip_record_id)
 );
 
 -- 참조 컬럼 인덱스. UNIQUE 제약이 선두 컬럼으로 커버하는 경로

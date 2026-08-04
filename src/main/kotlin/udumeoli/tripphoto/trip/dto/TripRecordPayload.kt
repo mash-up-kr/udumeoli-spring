@@ -12,5 +12,6 @@ data class TripRecordPayload(
     val member: UserPayload,
     val recorded: Boolean,
     val comment: String?,
-    val images: List<ImagePayload>,
+    /** 기록 1건에 사진 1장. [recorded] = false인 placeholder 행은 null이다. */
+    val image: ImagePayload?,
 )

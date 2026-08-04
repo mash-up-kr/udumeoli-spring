@@ -136,16 +136,17 @@ class TripQueryService(
             .mapNotNull { userId ->
                 val member = usersById[userId] ?: return@mapNotNull null
                 val record = recordsByUserId[userId]
-                val images = record?.let { bundle.toImages(bundle.tripImagesOfRecord(requireNotNull(it.id))) }
+                // 기록 1건에 사진 1장 — 사진이 아직 없는 placeholder 행이면 null이 된다.
+                val image =
+                    record
+                        ?.let { bundle.toImages(bundle.tripImagesOfRecord(requireNotNull(it.id))) }
+                        ?.firstOrNull()
 
                 TripRecordPayload(
                     member = member.toPayload(),
                     recorded = record != null,
                     comment = record?.comment,
-                    images =
-                        images
-                            .orEmpty()
-                            .map { image -> image.toPayload(image.uploaderId?.let(usersById::get)) },
+                    image = image?.let { it.toPayload(it.uploaderId?.let(usersById::get)) },
                 )
             }
     }

@@ -26,6 +26,8 @@
 # - TripMemberRecord = 그 방문에 대한 "멤버 1명의 기록"(사진 + 코멘트).
 #   Trip.records 는 팟 멤버 전원을 한 행씩 내려주며, 아직 안 올린 멤버는 recorded=false 인 빈 행이다.
 # - 같은 지역 재방문 = 새 Trip. 이미 있는 Trip에 내 기록만 얹는 것은 recordTrip.
+# - regionCode는 숫자가 아니라 문자열이다. 자릿수가 레벨마다 다르고(광역시·도 2자리, 시·군·구 5자리)
+#   프론트 GeoJSON의 properties.code와 그대로 대조해야 하므로, 숫자로 바꿔 선행 0이 날아가면 안 된다.
 #
 # [이미지 업로드 플로우]
 # - createImageUploadUrl → 프론트가 uploadUrl로 PUT 업로드 → imageId를 createTrip/recordTrip에 전달.
@@ -55,27 +57,28 @@ type Query {
     partyDetail(partyId: ID!): Party!
 
     """
-    초대코드로 참여하기 — 참여 확정 전 확인 모달용 미리보기.
+    초대코드로 받은 팟 미리보기 — 참여 확정 전 확인 모달용. 실제 참여는 joinParty 뮤테이션.
     """
-    partyParticipate(inviteCode: String!): CheckBeforePartyParticipate!
+    partyPreview(inviteCode: String!): PartyPreview!
 
     """
     팟의 전체 여행 목록
     정렬: 최신순 확정 — startDate 내림차순, 동률이면 createdAt 내림차순.
     """
-    partyTripsAll(partyId: ID!): [Trip!]!
+    partyTrips(partyId: ID!): [Trip!]!
 
-    "파티 여행 특정 지역 목록 — 정렬 기준은 partyTripsAll과 동일."
-    partyTripsByRegion(partyId: ID!, regionCode: Int!): [Trip!]!
+    "특정 지역의 여행만 — 정렬 기준은 partyTrips와 동일."
+    partyTripsInRegion(partyId: ID!, regionCode: String!): [Trip!]!
 
     """
-    여행 이미지 상세 보기 진입 화면 — 방문한 지역별 카드 목록. 파티 여행 지역 별 통계
+    팟이 방문한 지역 목록 — 여행 이미지 상세 보기 진입 화면.
+    지역마다 방문 횟수·대표 사진·내 미기록 여부가 함께 온다.
     """
-    partyTripsByRegionsStats(partyId: ID!): [RegionStats!]!
+    partyVisitedRegions(partyId: ID!): [VisitedRegion!]!
 
     # TODO: 여행리캡 확정 후 변경 예정
-    "파티 여행 전체 통계(리캡 이미지용 통계)"
-    partyTravelStats(partyId: ID!): TravelStats!
+    "팟의 여행 전체 집계 (리캡 이미지용)"
+    partyTripStats(partyId: ID!): TripStats!
 }
 
 type Mutation {
@@ -153,7 +156,7 @@ type Mutation {
 
 "서비스 사용자. 팟/여행 문맥과 무관한 전역 프로필."
 type User {
-    uid: ID!
+    id: ID!
     nickname: String!
     "프리셋 아바타 번호. 미설정 시 서버가 기본값을 채워 내려준다. (null 아님)"
     profileImage: Int!
@@ -171,7 +174,7 @@ type Party {
 }
 
 "참여 확정 전에 보여주는 팟 요약. 초대코드는 포함하지 않는다."
-type CheckBeforePartyParticipate {
+type PartyPreview {
     name: String!
     "\"n/6명 참여 중\"의 n"
     memberCount: Int!
@@ -195,7 +198,7 @@ enum TripKeyword {
 "팟의 한 번의 방문. 지역/기간/키워드는 팟 전체가 공유하고, 사진과 코멘트는 records에 담긴다."
 type Trip {
     id: ID!
-    regionCode: Int!
+    regionCode: String!
     keyword: TripKeyword!
     startDate: Date!
     endDate: Date!
@@ -219,9 +222,9 @@ type TripMemberRecord {
 }
 
 "여행 이미지 상세 보기 진입 화면의 지역 카드."
-type RegionStats {
-    "행정구역 코드 5자리"
-    regionCode: Int!
+type VisitedRegion {
+    "행정구역 코드. 광역시·도는 2자리, 시·군·구는 5자리다. (예: \"11\", \"31010\")"
+    regionCode: String!
     "\"N회\" — 이 지역 방문 횟수. 기록하기 화면의 다음 회차는 visitCount + 1."
     visitCount: Int!
     "스택(콜라주)용 대표 사진. 팟 전원 사진을 최신순으로 추린 것."
@@ -243,7 +246,7 @@ type Image {
 }
 
 "\"200일 동안 5개 도시\" 티켓용 통계"
-type TravelStats {
+type TripStats {
     "여행 횟수"
     tripCount: Int!
     "방문한 지역(시·군·구) 수 (중복 지역은 1로 계산)"
@@ -287,7 +290,7 @@ input TripImageInput {
 
 input CreateTripInput {
     partyId: ID!
-    regionCode: Int!
+    regionCode: String!
     keyword: TripKeyword!
     startDate: Date!
     endDate: Date!

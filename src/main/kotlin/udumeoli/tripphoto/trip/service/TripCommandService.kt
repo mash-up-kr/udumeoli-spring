@@ -35,8 +35,8 @@ class TripCommandService(
         input: CreateTripInput,
     ): TripPayload {
         partyQueryService.requireMember(input.partyId, currentUserId)
-        val regionCode = input.regionCode.toString()
-        if (!regionRepository.existsById(regionCode)) {
+        val regionCode = input.regionCode
+        if (!regionRepository.existsByRegionCode(regionCode)) {
             throw GraphQlDomainException(
                 GraphQlErrorCode.REGION_NOT_FOUND,
                 "존재하지 않는 지역입니다: ${input.regionCode}",

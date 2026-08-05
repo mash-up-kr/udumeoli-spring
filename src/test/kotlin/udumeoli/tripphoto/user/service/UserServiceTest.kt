@@ -29,7 +29,7 @@ class UserServiceTest {
 
         val result = userService.me(1)
 
-        assertThat(result.uid).isEqualTo(1)
+        assertThat(result.id).isEqualTo(1)
         assertThat(result.nickname).isEqualTo("기존")
         assertThat(result.profileImage).isEqualTo(1)
     }

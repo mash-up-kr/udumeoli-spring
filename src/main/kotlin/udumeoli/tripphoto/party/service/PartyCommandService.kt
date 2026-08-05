@@ -28,7 +28,14 @@ class PartyCommandService(
         userService.getCurrentUser(currentUserId)
         validateNonEmpty(name, "여행팟 이름을 입력해주세요.")
 
-        val party = saveParty(currentUserId, name, inviteCodeIssuer.issue())
+        val party =
+            saveParty(
+                Party(
+                    partyName = name,
+                    inviteCode = inviteCodeIssuer.issue(),
+                    ownerId = currentUserId,
+                ),
+            )
 
         partyMemberRepository.save(
             PartyMember(
@@ -38,6 +45,22 @@ class PartyCommandService(
         )
 
         return partyQueryService.toPayload(party)
+    }
+
+    /** 초대코드 재발급 (owner 전용). 기존 코드는 이 시점부터 무효다. */
+    @Transactional
+    fun regenerateInviteCode(
+        currentUserId: Long,
+        partyId: Long,
+    ): PartyPayload {
+        val party =
+            partyRepository.findById(partyId).orElseThrow {
+                GraphQlDomainException(GraphQlErrorCode.PARTY_NOT_FOUND, "여행팟을 찾을 수 없습니다.")
+            }
+        requireOwner(party, currentUserId)
+
+        val savedParty = saveParty(party.copy(inviteCode = inviteCodeIssuer.issue()))
+        return partyQueryService.toPayload(savedParty)
     }
 
     @Transactional
@@ -134,19 +157,10 @@ class PartyCommandService(
         }
     }
 
-    private fun saveParty(
-        currentUserId: Long,
-        name: String,
-        inviteCode: String,
-    ): Party =
+    /** 초대코드는 유니크라 발급/재발급 모두 충돌할 수 있다. 두 경로가 같은 코드로 응답하도록 여기서 잡는다. */
+    private fun saveParty(party: Party): Party =
         try {
-            partyRepository.save(
-                Party(
-                    partyName = name,
-                    inviteCode = inviteCode,
-                    ownerId = currentUserId,
-                ),
-            )
+            partyRepository.save(party)
         } catch (_: DuplicateKeyException) {
             throw GraphQlDomainException(
                 GraphQlErrorCode.INVITE_CODE_CONFLICT,

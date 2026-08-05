@@ -6,7 +6,7 @@ import java.time.LocalDateTime
 
 data class TripPayload(
     val id: Long,
-    val regionCode: Int,
+    val regionCode: String,
     val keyword: TripKeyword,
     val startDate: LocalDate,
     val endDate: LocalDate,

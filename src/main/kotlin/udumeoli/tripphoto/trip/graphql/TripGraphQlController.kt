@@ -9,21 +9,19 @@ import udumeoli.tripphoto.common.graphql.requireCurrentUserId
 import udumeoli.tripphoto.config.CurrentUserGraphQlInterceptor
 import udumeoli.tripphoto.trip.dto.CreateTripInput
 import udumeoli.tripphoto.trip.dto.RecordTripInput
-import udumeoli.tripphoto.trip.dto.RegionCardPayload
-import udumeoli.tripphoto.trip.dto.TravelStatsPayload
 import udumeoli.tripphoto.trip.dto.TripPayload
+import udumeoli.tripphoto.trip.dto.TripStatsPayload
+import udumeoli.tripphoto.trip.dto.VisitedRegionPayload
 import udumeoli.tripphoto.trip.service.TripCommandService
 import udumeoli.tripphoto.trip.service.TripQueryService
-import udumeoli.tripphoto.trip.service.TripRegionQueryService
 
 @Controller
 class TripGraphQlController(
     private val tripQueryService: TripQueryService,
     private val tripCommandService: TripCommandService,
-    private val tripRegionQueryService: TripRegionQueryService,
 ) {
     @QueryMapping
-    fun partyTripsAll(
+    fun partyTrips(
         @ContextValue(
             name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
             required = false,
@@ -33,36 +31,35 @@ class TripGraphQlController(
     ): List<TripPayload> = tripQueryService.trips(requireCurrentUserId(currentUserId), partyId)
 
     @QueryMapping
-    fun partyTripsByRegion(
+    fun partyTripsInRegion(
         @ContextValue(
             name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
             required = false,
         )
         currentUserId: Long?,
         @Argument partyId: Long,
-        @Argument regionCode: Int,
-    ): List<TripPayload> =
-        tripQueryService.tripsByRegion(requireCurrentUserId(currentUserId), partyId, regionCode.toString())
+        @Argument regionCode: String,
+    ): List<TripPayload> = tripQueryService.tripsByRegion(requireCurrentUserId(currentUserId), partyId, regionCode)
 
     @QueryMapping
-    fun partyTripsByRegionsStats(
+    fun partyVisitedRegions(
         @ContextValue(
             name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
             required = false,
         )
         currentUserId: Long?,
         @Argument partyId: Long,
-    ): List<RegionCardPayload> = tripRegionQueryService.regionCards(requireCurrentUserId(currentUserId), partyId)
+    ): List<VisitedRegionPayload> = tripQueryService.visitedRegions(requireCurrentUserId(currentUserId), partyId)
 
     @QueryMapping
-    fun partyTravelStats(
+    fun partyTripStats(
         @ContextValue(
             name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
             required = false,
         )
         currentUserId: Long?,
         @Argument partyId: Long,
-    ): TravelStatsPayload = tripQueryService.travelStats(requireCurrentUserId(currentUserId), partyId)
+    ): TripStatsPayload = tripQueryService.tripStats(requireCurrentUserId(currentUserId), partyId)
 
     @MutationMapping
     fun createTrip(

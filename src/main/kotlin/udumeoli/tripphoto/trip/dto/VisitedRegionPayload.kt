@@ -2,9 +2,9 @@ package udumeoli.tripphoto.trip.dto
 
 import udumeoli.tripphoto.image.dto.ImagePayload
 
-/** 여행 이미지 상세 보기 진입 화면의 지역 카드 1장. */
-data class RegionCardPayload(
-    val regionCode: Int,
+/** 팟이 방문한 지역 1곳과 그 지역의 여행 요약 (GraphQL `VisitedRegion`). */
+data class VisitedRegionPayload(
+    val regionCode: String,
     val visitCount: Int,
     val images: List<ImagePayload>,
     val totalImageCount: Int,

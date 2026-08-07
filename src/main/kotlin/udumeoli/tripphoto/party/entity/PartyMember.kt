@@ -1,8 +1,10 @@
 package udumeoli.tripphoto.party.entity
 
+import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
+import java.time.LocalDateTime
 
 @Table("party_member")
 data class PartyMember(
@@ -12,4 +14,7 @@ data class PartyMember(
     val partyId: Long,
     @Column("service_user_id")
     val serviceUserId: Long,
+    @CreatedDate
+    @Column("created_at")
+    val createdAt: LocalDateTime? = null,
 )

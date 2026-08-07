@@ -31,7 +31,7 @@ class UserServiceTest {
 
         assertThat(result.id).isEqualTo(1)
         assertThat(result.nickname).isEqualTo("기존")
-        assertThat(result.profileImageUrl).isEqualTo("old.png")
+        assertThat(result.profileImage).isEqualTo(1)
     }
 
     @Test
@@ -43,10 +43,10 @@ class UserServiceTest {
             savedUserSlot.captured
         }
 
-        val result = userService.updateProfile(currentUserId = 1, nickname = "변경", profileImageUrl = "new.png")
+        val result = userService.updateProfile(currentUserId = 1, nickname = "변경", profileImage = 2)
 
         assertThat(result.nickname).isEqualTo("변경")
-        assertThat(result.profileImageUrl).isEqualTo("new.png")
+        assertThat(result.profileImage).isEqualTo(2)
         assertThat(savedUserSlot.captured.id).isEqualTo(1)
     }
 
@@ -63,5 +63,5 @@ class UserServiceTest {
         assertThat((thrown as GraphQlDomainException).code).isEqualTo(GraphQlErrorCode.UNAUTHENTICATED)
     }
 
-    private fun user(): ServiceUser = ServiceUser(id = 1, nickname = "기존", profileImageUrl = "old.png")
+    private fun user(): ServiceUser = ServiceUser(id = 1, nickname = "기존", profileImage = 1)
 }

@@ -8,9 +8,10 @@ import org.springframework.stereotype.Controller
 import udumeoli.tripphoto.common.graphql.requireCurrentUserId
 import udumeoli.tripphoto.config.CurrentUserGraphQlInterceptor
 import udumeoli.tripphoto.trip.dto.CreateTripInput
-import udumeoli.tripphoto.trip.dto.TravelStatsPayload
+import udumeoli.tripphoto.trip.dto.RecordTripInput
 import udumeoli.tripphoto.trip.dto.TripPayload
-import udumeoli.tripphoto.trip.dto.UpdateTripInput
+import udumeoli.tripphoto.trip.dto.TripStatsPayload
+import udumeoli.tripphoto.trip.dto.VisitedRegionPayload
 import udumeoli.tripphoto.trip.service.TripCommandService
 import udumeoli.tripphoto.trip.service.TripQueryService
 
@@ -20,7 +21,7 @@ class TripGraphQlController(
     private val tripCommandService: TripCommandService,
 ) {
     @QueryMapping
-    fun trips(
+    fun partyTrips(
         @ContextValue(
             name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
             required = false,
@@ -30,7 +31,7 @@ class TripGraphQlController(
     ): List<TripPayload> = tripQueryService.trips(requireCurrentUserId(currentUserId), partyId)
 
     @QueryMapping
-    fun tripsByRegion(
+    fun partyTripsInRegion(
         @ContextValue(
             name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
             required = false,
@@ -41,24 +42,24 @@ class TripGraphQlController(
     ): List<TripPayload> = tripQueryService.tripsByRegion(requireCurrentUserId(currentUserId), partyId, regionCode)
 
     @QueryMapping
-    fun trip(
-        @ContextValue(
-            name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
-            required = false,
-        )
-        currentUserId: Long?,
-        @Argument tripId: Long,
-    ): TripPayload = tripQueryService.trip(requireCurrentUserId(currentUserId), tripId)
-
-    @QueryMapping
-    fun travelStats(
+    fun partyVisitedRegions(
         @ContextValue(
             name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
             required = false,
         )
         currentUserId: Long?,
         @Argument partyId: Long,
-    ): TravelStatsPayload = tripQueryService.travelStats(requireCurrentUserId(currentUserId), partyId)
+    ): List<VisitedRegionPayload> = tripQueryService.visitedRegions(requireCurrentUserId(currentUserId), partyId)
+
+    @QueryMapping
+    fun partyTripStats(
+        @ContextValue(
+            name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
+            required = false,
+        )
+        currentUserId: Long?,
+        @Argument partyId: Long,
+    ): TripStatsPayload = tripQueryService.tripStats(requireCurrentUserId(currentUserId), partyId)
 
     @MutationMapping
     fun createTrip(
@@ -71,22 +72,22 @@ class TripGraphQlController(
     ): TripPayload = tripCommandService.createTrip(requireCurrentUserId(currentUserId), input)
 
     @MutationMapping
-    fun updateTrip(
+    fun recordTrip(
         @ContextValue(
             name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
             required = false,
         )
         currentUserId: Long?,
-        @Argument input: UpdateTripInput,
-    ): TripPayload = tripCommandService.updateTrip(requireCurrentUserId(currentUserId), input)
+        @Argument input: RecordTripInput,
+    ): TripPayload = tripCommandService.recordTrip(requireCurrentUserId(currentUserId), input)
 
     @MutationMapping
-    fun deleteTrip(
+    fun deleteTripRecord(
         @ContextValue(
             name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
             required = false,
         )
         currentUserId: Long?,
         @Argument tripId: Long,
-    ): Long = tripCommandService.deleteTrip(requireCurrentUserId(currentUserId), tripId)
+    ): TripPayload? = tripCommandService.deleteTripRecord(requireCurrentUserId(currentUserId), tripId)
 }

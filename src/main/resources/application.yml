@@ -24,3 +24,5 @@ storage:
   public-base-url: "${STORAGE_PUBLIC_BASE_URL:http://localhost:9000/photato-image}"
 thumbnail:
   server-url: "${THUMBNAIL_SERVER_URL:}"
+
+max-upload-size: 10MB

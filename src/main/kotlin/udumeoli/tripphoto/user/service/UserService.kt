@@ -20,12 +20,12 @@ class UserService(
     fun updateProfile(
         currentUserId: Long,
         nickname: String,
-        profileImageUrl: String?,
+        profileImage: Int?,
     ): UserPayload {
         validateNonEmpty(nickname, "닉네임을 입력해주세요.")
         val user = getCurrentUser(currentUserId)
         return serviceUserRepository
-            .save(user.updateProfile(nickname, profileImageUrl))
+            .save(user.updateProfile(nickname, profileImage))
             .toPayload()
     }
 

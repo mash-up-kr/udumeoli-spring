@@ -21,12 +21,12 @@ import udumeoli.tripphoto.user.entity.ServiceUser
 import udumeoli.tripphoto.user.service.UserService
 import java.time.LocalDateTime
 
-class PartyInviteServiceTest {
+class PartyJoinServiceTest {
     private lateinit var partyRepository: PartyRepository
     private lateinit var partyMemberRepository: PartyMemberRepository
     private lateinit var userService: UserService
     private lateinit var joinPartyRateLimiter: JoinPartyRateLimiter
-    private lateinit var partyInviteService: PartyInviteService
+    private lateinit var partyJoinService: PartyJoinService
 
     private val now = LocalDateTime.of(2026, 7, 17, 16, 30)
 
@@ -38,13 +38,12 @@ class PartyInviteServiceTest {
         joinPartyRateLimiter = mockk()
 
         val partyQueryService = PartyQueryService(partyRepository, partyMemberRepository, userService)
-        partyInviteService =
-            PartyInviteService(
+        partyJoinService =
+            PartyJoinService(
                 partyRepository = partyRepository,
                 partyMemberRepository = partyMemberRepository,
                 userService = userService,
                 joinPartyRateLimiter = joinPartyRateLimiter,
-                inviteCodeIssuer = InviteCodeIssuer(partyRepository),
                 partyQueryService = partyQueryService,
             )
     }
@@ -70,7 +69,7 @@ class PartyInviteServiceTest {
             users = listOf(owner, member),
         )
 
-        val result = partyInviteService.joinParty(currentUserId = 2, inviteCode = "abc123")
+        val result = partyJoinService.joinParty(currentUserId = 2, inviteCode = "abc123")
 
         assertThat(result.members.map { it.nickname }).containsExactly("방장", "멤버")
         assertThat(savedMemberSlot.captured.partyId).isEqualTo(10)
@@ -89,7 +88,7 @@ class PartyInviteServiceTest {
 
         val thrown =
             catchThrowable {
-                partyInviteService.joinParty(currentUserId = 2, inviteCode = "abc123")
+                partyJoinService.joinParty(currentUserId = 2, inviteCode = "abc123")
             }
 
         assertThat(thrown).isInstanceOf(GraphQlDomainException::class.java)
@@ -106,11 +105,11 @@ class PartyInviteServiceTest {
         every { joinPartyRateLimiter.check(7L) } just Runs
         every { partyRepository.findByInviteCodeForUpdate("abc123") } returns party()
         every { partyMemberRepository.existsByPartyIdAndServiceUserId(10L, 7L) } returns false
-        every { partyMemberRepository.countByPartyId(10L) } returns PartyInviteService.MAX_PARTY_MEMBERS
+        every { partyMemberRepository.countByPartyId(10L) } returns PartyJoinService.MAX_PARTY_MEMBERS
 
         val thrown =
             catchThrowable {
-                partyInviteService.joinParty(currentUserId = 7, inviteCode = "abc123")
+                partyJoinService.joinParty(currentUserId = 7, inviteCode = "abc123")
             }
 
         assertThat(thrown).isInstanceOf(GraphQlDomainException::class.java)

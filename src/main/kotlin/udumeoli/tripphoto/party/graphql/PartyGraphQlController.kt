@@ -5,20 +5,20 @@ import org.springframework.graphql.data.method.annotation.ContextValue
 import org.springframework.graphql.data.method.annotation.MutationMapping
 import org.springframework.graphql.data.method.annotation.QueryMapping
 import org.springframework.stereotype.Controller
-import udumeoli.tripphoto.common.graphql.GraphQlDomainException
-import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
+import udumeoli.tripphoto.common.graphql.requireCurrentUserId
 import udumeoli.tripphoto.config.CurrentUserGraphQlInterceptor
 import udumeoli.tripphoto.party.dto.KickMemberInput
 import udumeoli.tripphoto.party.dto.PartyPayload
+import udumeoli.tripphoto.party.dto.PartyPreviewPayload
 import udumeoli.tripphoto.party.service.PartyCommandService
-import udumeoli.tripphoto.party.service.PartyInviteService
+import udumeoli.tripphoto.party.service.PartyJoinService
 import udumeoli.tripphoto.party.service.PartyQueryService
 
 @Controller
 class PartyGraphQlController(
     private val partyQueryService: PartyQueryService,
     private val partyCommandService: PartyCommandService,
-    private val partyInviteService: PartyInviteService,
+    private val partyJoinService: PartyJoinService,
 ) {
     @QueryMapping
     fun myParties(
@@ -30,7 +30,7 @@ class PartyGraphQlController(
     ): List<PartyPayload> = partyQueryService.myParties(requireCurrentUserId(currentUserId))
 
     @QueryMapping
-    fun party(
+    fun partyDetail(
         @ContextValue(
             name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
             required = false,
@@ -38,6 +38,16 @@ class PartyGraphQlController(
         currentUserId: Long?,
         @Argument partyId: Long,
     ): PartyPayload = partyQueryService.party(requireCurrentUserId(currentUserId), partyId)
+
+    @QueryMapping
+    fun partyPreview(
+        @ContextValue(
+            name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
+            required = false,
+        )
+        currentUserId: Long?,
+        @Argument inviteCode: String,
+    ): PartyPreviewPayload = partyJoinService.partyPreview(requireCurrentUserId(currentUserId), inviteCode)
 
     @MutationMapping
     fun createParty(
@@ -57,7 +67,7 @@ class PartyGraphQlController(
         )
         currentUserId: Long?,
         @Argument inviteCode: String,
-    ): PartyPayload = partyInviteService.joinParty(requireCurrentUserId(currentUserId), inviteCode)
+    ): PartyPayload = partyJoinService.joinParty(requireCurrentUserId(currentUserId), inviteCode)
 
     @MutationMapping
     fun regenerateInviteCode(
@@ -67,7 +77,7 @@ class PartyGraphQlController(
         )
         currentUserId: Long?,
         @Argument partyId: Long,
-    ): PartyPayload = partyInviteService.regenerateInviteCode(requireCurrentUserId(currentUserId), partyId)
+    ): PartyPayload = partyCommandService.regenerateInviteCode(requireCurrentUserId(currentUserId), partyId)
 
     @MutationMapping
     fun leaveParty(
@@ -103,8 +113,4 @@ class PartyGraphQlController(
             partyId = input.partyId,
             targetUserId = input.targetUserId,
         )
-
-    private fun requireCurrentUserId(currentUserId: Long?): Long =
-        currentUserId
-            ?: throw GraphQlDomainException(GraphQlErrorCode.UNAUTHENTICATED, "로그인이 필요합니다.")
 }

@@ -216,7 +216,7 @@ class PartyGraphQlTest {
             .document(
                 """
                 query {
-                  party(partyId: "${party.id}") {
+                  partyDetail(partyId: "${party.id}") {
                     id
                   }
                 }

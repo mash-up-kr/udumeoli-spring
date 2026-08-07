@@ -11,17 +11,21 @@ data class ServiceUser(
     @Id
     val id: Long? = null,
     val nickname: String,
-    @Column("profile_image_url")
-    val profileImageUrl: String = "DEFAULT",
+    @Column("profile_image")
+    val profileImage: Int = DEFAULT_PROFILE_IMAGE,
     @Embedded.Empty(prefix = "")
     val auditMetadata: AuditMetadata = AuditMetadata(),
 ) {
     fun updateProfile(
         nickname: String,
-        profileImageUrl: String?,
+        profileImage: Int?,
     ): ServiceUser =
         copy(
             nickname = nickname,
-            profileImageUrl = profileImageUrl ?: this.profileImageUrl,
+            profileImage = profileImage ?: this.profileImage,
         )
+
+    companion object {
+        const val DEFAULT_PROFILE_IMAGE = 1
+    }
 }

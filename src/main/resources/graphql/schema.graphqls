@@ -1,4 +1,4 @@
-# PHOTATO GraphQL 스키마 v1.2
+# PHOTATO GraphQL 스키마 v2.0
 #
 # [인증 전제]
 # - 카카오 OAuth 로그인/토큰 발급은 REST로 처리한다. (POST /api/auth/kakao 등 — 명세 별도 확정)
@@ -19,19 +19,23 @@
 #   / REGION_NOT_FOUND / MEMBER_NOT_FOUND / INVALID_INVITE_CODE / IMAGE_NOT_UPLOADED
 #   / INVITE_CODE_CONFLICT / ALREADY_JOINED_PARTY / PARTY_FULL / CANNOT_REMOVE_OWNER / PARTY_HAS_MEMBERS
 #   / OWNER_CANNOT_LEAVE / RATE_LIMITED / VALIDATION_ERROR
+#   / TRIP_RECORD_NOT_FOUND
+#
+# [여행 모델 — v2에서 바뀐 핵심]
+# - Trip = "팟의 한 번의 방문"(지역 + 기간 + 키워드). 팟 전체가 공유한다.
+# - TripMemberRecord = 그 방문에 대한 "멤버 1명의 기록"(사진 + 코멘트).
+#   Trip.records 는 팟 멤버 전원을 한 행씩 내려주며, 아직 안 올린 멤버는 recorded=false 인 빈 행이다.
+# - 같은 지역 재방문 = 새 Trip. 이미 있는 Trip에 내 기록만 얹는 것은 recordTrip.
+# - regionCode는 숫자가 아니라 문자열이다. 자릿수가 레벨마다 다르고(광역시·도 2자리, 시·군·구 5자리)
+#   프론트 GeoJSON의 properties.code와 그대로 대조해야 하므로, 숫자로 바꿔 선행 0이 날아가면 안 된다.
 #
 # [이미지 업로드 플로우]
-# - createImageUploadUrl → 프론트가 uploadUrl로 PUT 업로드 → imageId를 createTrip/updateTrip에 전달.
-#   전달 시점에 서버가 업로드 여부를 검증한다 (미업로드면 IMAGE_NOT_UPLOADED).
+# - createImageUploadUrl → 프론트가 uploadUrl로 PUT 업로드 → imageId를 createTrip/recordTrip에 전달.
 # - 썸네일은 백그라운드 생성. null이면 프론트가 originalUrl로 대체 표시.
 # - 이미지 내부 처리 상태는 GraphQL로 노출하지 않는다.
 #
-# [사진 변경 정책 — MVP: 여행당 1장]
-# - 사진 추가/삭제 뮤테이션은 두지 않는다. 사진 변경은 updateTrip.imageIds "통째 교체"로 일원화.
-# - 추후 여러 장 확장 시점에 addTripImages / deleteTripImage 부활 예정.
-#
 # [목록 반환 정책]
-# - v1의 모든 목록은 배열로 반환한다. (페이지네이션 없음)
+# - v2의 모든 목록은 배열로 반환한다. (페이지네이션 없음)
 
 "ISO-8601 날짜. 예: \"2026-07-09\""
 scalar Date
@@ -42,36 +46,43 @@ scalar DateTime
 type Query {
     """
     내 프로필 (토큰 기준).
-    온보딩(닉네임 설정) 완료 여부는 REST 로그인 응답(isNewUser)으로 판단한다 — 협의 중.
+    온보딩(닉네임 설정) 완료 여부는 REST 로그인 응답(isNewUser)으로 판단
     """
     me: User!
 
-    "내가 속한 여행팟 목록 (상단 드롭다운용). 소속 팟이 없으면 빈 배열."
+    "내가 속한 여행팟 목록, 소속 팟이 없으면 빈 배열."
     myParties: [Party!]!
 
     "팟 상세 (멤버 목록 포함). 내가 멤버가 아니면 FORBIDDEN."
-    party(partyId: ID!): Party!
+    partyDetail(partyId: ID!): Party!
 
     """
-    팟의 전체 여행 목록 — 지도 채색/썸네일 표시용. 전체 반환(페이지네이션 없음).
+    초대코드로 받은 팟 미리보기 — 참여 확정 전 확인 모달용. 실제 참여는 joinParty 뮤테이션.
+    """
+    partyPreview(inviteCode: String!): PartyPreview!
+
+    """
+    팟의 전체 여행 목록
     정렬: 최신순 확정 — startDate 내림차순, 동률이면 createdAt 내림차순.
     """
-    trips(partyId: ID!): [Trip!]!
+    partyTrips(partyId: ID!): [Trip!]!
 
-    "특정 지역의 여행 목록 — 지역별 갤러리. 정렬 기준은 trips와 동일."
-    tripsByRegion(partyId: ID!, regionCode: String!): [Trip!]!
+    "특정 지역의 여행만 — 정렬 기준은 partyTrips와 동일."
+    partyTripsInRegion(partyId: ID!, regionCode: String!): [Trip!]!
 
-    "여행 단건 상세. 이 팟의 여행이 아니거나 내가 멤버가 아니면 TRIP_NOT_FOUND / FORBIDDEN."
-    trip(tripId: ID!): Trip!
+    """
+    팟이 방문한 지역 목록 — 여행 이미지 상세 보기 진입 화면.
+    지역마다 방문 횟수·대표 사진·내 미기록 여부가 함께 온다.
+    """
+    partyVisitedRegions(partyId: ID!): [VisitedRegion!]!
 
-    "여행 사진 추출(티켓 이미지)용 통계"
-    travelStats(partyId: ID!): TravelStats!
-
-    # regions 쿼리는 제거 확정 — 지역 데이터(코드↔이름, 폴리곤)는 프론트 정적 자산이 관리한다.
+    # TODO: 여행리캡 확정 후 변경 예정
+    "팟의 여행 전체 집계 (리캡 이미지용)"
+    partyTripStats(partyId: ID!): TripStats!
 }
 
 type Mutation {
-    "닉네임/프로필 이미지 설정 (가입 직후 온보딩 포함). 닉네임 중복 정책은 협의 중."
+    "닉네임/프로필 이미지 설정 (가입 직후 온보딩 포함)."
     updateProfile(input: UpdateProfileInput!): User!
 
     "여행팟 생성 — 6자리 초대코드가 발급된다. 생성자는 자동으로 owner이자 멤버가 된다."
@@ -94,7 +105,7 @@ type Mutation {
 
     """
     팟 나가기. 성공 시 나간 팟의 id를 반환.
-    [정책] owner는 나갈 수 없다. owner가 호출하면 OWNER_CANNOT_LEAVE 반환.
+    owner는 나갈 수 없다. owner가 호출하면 OWNER_CANNOT_LEAVE 반환.
     """
     leaveParty(partyId: ID!): ID!
 
@@ -116,80 +127,112 @@ type Mutation {
     이미지 업로드 URL 발급 (presigned URL 방식)
       1) 이 뮤테이션으로 imageId + uploadUrl 발급
       2) 발급받은 uploadUrl로 원본 PUT 업로드
-      3) imageId를 createTrip에 전달 (그 시점에 서버가 업로드 여부 검증)
+      3) imageId를 createTrip/recordTrip에 전달
     """
     createImageUploadUrl(input: CreateImageUploadUrlInput!): ImageUploadTarget!
 
     """
-    여행 등록 — 지역 + 기간 + 색상 + 사진 (MVP: 사진 1장)
-    - imageIds는 원본 업로드까지 끝낸 imageId여야 한다. 미업로드면 IMAGE_NOT_UPLOADED,
-      존재하지 않는 imageId면 IMAGE_NOT_FOUND.
-    - imageIds는 정확히 1개 (0개 또는 2개 이상이면 VALIDATION_ERROR).
-    - 존재하지 않는 regionCode면 REGION_NOT_FOUND. startDate <= endDate 를 서버가 검증한다.
+    새 방문 등록 — 지역 + 기간 + 키워드를 확정하고, 내 기록(사진 1장 + 코멘트)까지 함께 남긴다.
+    같은 지역을 다시 방문했다면 이 뮤테이션으로 새 Trip을 만든다 (기존 기록에 덮어쓰지 않는다).
+    - 존재하지 않는 imageId면 IMAGE_NOT_FOUND, 존재하지 않는 regionCode면 REGION_NOT_FOUND.
+    - startDate <= endDate 를 서버가 검증한다.
     """
     createTrip(input: CreateTripInput!): Trip!
 
     """
-    여행 수정 — 지역/색상/기간/사진 변경. 갱신된 Trip을 반환.
-    [정책] 여행 등록자(createdBy) 본인 또는 팟 owner만 수정 가능. (deleteTrip과 동일 기준)
-    미전달(null) 필드는 기존 값을 유지한다. 수정 결과에 대해 startDate <= endDate 를 서버가 검증한다.
-    사진 교체: imageIds 전달 시 기존 사진을 통째로 교체한다 (MVP: 1장). 기존 사진은 서버가 정리한다.
+    이미 있는 여행에 내 기록을 남긴다
+    내 기록이 이미 있으면 사진/코멘트를 통째로 교체한다(upsert). 연결이 끊긴 사진은 서버가 정리한다.
+    이 팟의 멤버가 아니면 FORBIDDEN.
     """
-    updateTrip(input: UpdateTripInput!): Trip!
-
-    # addTripImages / deleteTripImage 는 MVP "여행당 사진 1장" 정책과 충돌하여 v1에서 제외.
-    # 사진 변경은 updateTrip.imageIds 교체로 일원화. 추후 여러 장 확장 시 부활 예정.
-    # addTripImages(input: AddTripImagesInput!): Trip!
-    # deleteTripImage(input: DeleteTripImageInput!): Trip!
+    recordTrip(input: RecordTripInput!): Trip!
 
     """
-    여행 삭제 — 삭제된 여행의 id를 반환.
-    [정책] 여행 등록자(createdBy) 본인 또는 팟 owner만 삭제 가능.
+    내 기록만 삭제 (사진 + 코멘트). 여행 자체와 다른 멤버의 기록은 남는다.
+    내 기록이 없으면 TRIP_RECORD_NOT_FOUND.
+    [정책] 삭제 결과 아무 기록도 남지 않으면 여행 자체가 사라지고 null을 반환한다.
     """
-    deleteTrip(tripId: ID!): ID!
+    deleteTripRecord(tripId: ID!): Trip
 }
 
 "서비스 사용자. 팟/여행 문맥과 무관한 전역 프로필."
 type User {
     id: ID!
     nickname: String!
-    "미설정 시 서버가 기본 이미지 URL을 채워 내려준다. (null 아님)"
-    profileImageUrl: String!
+    "프리셋 아바타 번호. 미설정 시 서버가 기본값을 채워 내려준다. (null 아님)"
+    profileImage: Int!
 }
 
 type Party {
     id: ID!
     name: String!
-    "6자리 초대코드. owner 및 멤버에게만 노출된다고 가정."
+    "6자리 초대코드"
     inviteCode: String!
     owner: User!
-    "owner 포함 전체 멤버. 최대 6명."
+    "owner 포함 전체 멤버. 최대 6명. 가입 순서 정렬(owner가 항상 첫 번째)."
     members: [User!]!
     createdAt: DateTime!
 }
 
-"""
-시·군·구 행정구역. 폴리곤(GeoJSON)과 지역 목록은 프론트 정적 자산이 관리하고 백엔드는 코드만 다룬다.
-(별도 regions 조회 쿼리는 두지 않는다 — Trip.region 으로만 노출)
-"""
-type Region {
-    "행정구역 코드 5자리 (예: \"11110\" = 서울 종로구)"
-    code: String!
+"참여 확정 전에 보여주는 팟 요약. 초대코드는 포함하지 않는다."
+type PartyPreview {
     name: String!
+    "\"n/6명 참여 중\"의 n"
+    memberCount: Int!
+    "가입 순서 정렬"
+    members: [User!]!
 }
 
+"""
+기록하기 플로우에서 고르는 여행 키워드 6종. 기존 color를 대체한다.
+지도 채색 색상은 프론트가 이 값에 매핑한다.
+"""
+enum TripKeyword {
+    HEALING
+    ACTIVITY
+    FOOD
+    NATURE
+    CITY
+    CULTURE
+}
+
+"팟의 한 번의 방문. 지역/기간/키워드는 팟 전체가 공유하고, 사진과 코멘트는 records에 담긴다."
 type Trip {
     id: ID!
-    region: Region!
-    "지도 채색 색상, hex (예: \"#FF5733\"). 필수 — CreateTripInput.color와 nullable 일치."
-    color: String!
+    regionCode: String!
+    keyword: TripKeyword!
     startDate: Date!
     endDate: Date!
-    "이 여행에 등록된 사진들. MVP는 1장이지만 배열로 확장 대비."
-    images: [Image!]!
-    "등록자 (탈퇴한 사용자면 null)"
-    createdBy: User
+    "이 지역의 몇 번째 방문인지 (1부터). \"N번째 방문\" 라벨용."
+    visitSequence: Int!
+    """
+    팟 멤버 전원의 기록 행. 아직 안 올린 멤버도 recorded=false 로 포함된다.
+    정렬: 내 기록 최상단 고정 → 이후 팟 가입 순서.
+    """
+    records: [TripMemberRecord!]!
     createdAt: DateTime!
+}
+
+"여행 기록 — 멤버 1명."
+type TripMemberRecord {
+    member: User!
+    recorded: Boolean!
+    comment: String
+    "[정책] 기록 1건에 사진 1장. 아직 안 올린 멤버(recorded=false)는 null."
+    image: Image
+}
+
+"여행 이미지 상세 보기 진입 화면의 지역 카드."
+type VisitedRegion {
+    "행정구역 코드. 광역시·도는 2자리, 시·군·구는 5자리다. (예: \"11\", \"31010\")"
+    regionCode: String!
+    "\"N회\" — 이 지역 방문 횟수. 기록하기 화면의 다음 회차는 visitCount + 1."
+    visitCount: Int!
+    "스택(콜라주)용 대표 사진. 팟 전원 사진을 최신순으로 추린 것."
+    images: [Image!]!
+    "이 지역의 전체 사진 수. 스택에 담기지 않은 \"+N\" 계산용."
+    totalImageCount: Int!
+    "이 지역 방문 중 내가 기록하지 않은 게 있으면 true → \"아직 기록하지 않은 여행이 있어요\""
+    hasUnrecordedTrip: Boolean!
 }
 
 type Image {
@@ -203,7 +246,7 @@ type Image {
 }
 
 "\"200일 동안 5개 도시\" 티켓용 통계"
-type TravelStats {
+type TripStats {
     "여행 횟수"
     tripCount: Int!
     "방문한 지역(시·군·구) 수 (중복 지역은 1로 계산)"
@@ -216,8 +259,8 @@ type TravelStats {
 
 input UpdateProfileInput {
     nickname: String!
-    "미전달(null) 시 기존 값 유지."
-    profileImageUrl: String
+    "미전달(null) 시 기존 값 유지. 프리셋 아바타 번호."
+    profileImage: Int
 }
 
 input KickMemberInput {
@@ -227,7 +270,7 @@ input KickMemberInput {
 }
 
 input CreateImageUploadUrlInput {
-    "예: \"image/jpeg\". 허용 목록은 협의 중."
+    "예: \"image/jpeg\". 허용: image/jpeg, image/png, image/webp"
     contentType: String!
 }
 
@@ -237,36 +280,27 @@ type ImageUploadTarget {
     uploadUrl: String!
 }
 
+"기록에 붙일 사진 1장."
+input TripImageInput {
+    "업로드까지 끝낸 imageId"
+    imageId: ID!
+    "촬영일. 갤러리 최신순 정렬 기준. 미전달 시 등록 순서로 밀린다."
+    takenAt: Date
+}
+
 input CreateTripInput {
     partyId: ID!
     regionCode: String!
-    "hex 색상 (예: \"#FF5733\")"
-    color: String!
+    keyword: TripKeyword!
     startDate: Date!
     endDate: Date!
-    "MVP: 정확히 1개, 추후 여러 장 확장"
-    imageIds: [ID!]!
+    image: TripImageInput!
+    comment: String
 }
 
-"여행 수정 입력. tripId 외 모든 필드 optional — 미전달(null) 시 기존 값 유지."
-input UpdateTripInput {
+input RecordTripInput {
     tripId: ID!
-    "변경 시 존재하는 행정구역 코드여야 한다 (아니면 REGION_NOT_FOUND)"
-    regionCode: String
-    "hex 색상 (예: \"#FF5733\")"
-    color: String
-    startDate: Date
-    endDate: Date
-    "전달 시 기존 사진을 이 목록으로 통째로 교체 (MVP: 정확히 1개)"
-    imageIds: [ID!]
+    "기존 내 사진을 이 사진으로 교체한다."
+    image: TripImageInput!
+    comment: String
 }
-
-# 추후 여러 장 확장 시 부활 예정
-# input AddTripImagesInput {
-#     tripId: ID!
-#     imageIds: [ID!]!
-# }
-# input DeleteTripImageInput {
-#     tripId: ID!
-#     imageId: ID!
-# }

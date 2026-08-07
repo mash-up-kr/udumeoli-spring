@@ -15,7 +15,7 @@ data class Trip(
     val partyId: Long,
     @Column("region_code")
     val regionCode: String,
-    val color: String? = null,
+    val keyword: TripKeyword,
     @Column("start_date")
     val startDate: LocalDate,
     @Column("end_date")

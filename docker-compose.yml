@@ -19,6 +19,13 @@ services:
       STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
       STORAGE_PUBLIC_BASE_URL: ${STORAGE_PUBLIC_BASE_URL}
       THUMBNAIL_SERVER_URL: ${THUMBNAIL_SERVER_URL}
+      # ATP의 APP_USER 스키마에는 삭제할 수 없는 고아 identity 시퀀스(ISEQ$$_...)가 남아 있다.
+      # 소유 테이블이 이미 드롭돼 ORA-32794(cannot drop a system-generated sequence)로 제거가 막히는데,
+      # 이것들 때문에 Flyway가 스키마를 영구히 "비어있지 않음"으로 판정해 V1을 시작조차 못 한다.
+      # baseline으로 이력 테이블을 만들어 그 검사를 통과시킨다.
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      # 반드시 0이어야 한다. 기본값 1이면 V1이 "이미 적용됨"으로 건너뛰어져 스키마가 통째로 비어버린다.
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
     volumes:
       # 서버의 wallet 디렉토리를 컨테이너 안으로 read-only 마운트
       - /opt/oracle/wallet:/opt/oracle/wallet:ro

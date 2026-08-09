@@ -2,6 +2,7 @@ package udumeoli.tripphoto.auth.web
 
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import org.slf4j.LoggerFactory
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
@@ -68,6 +69,7 @@ class OAuth2LoginFailureHandler(
         response: HttpServletResponse,
         exception: org.springframework.security.core.AuthenticationException,
     ) {
+        log.warn("OAuth2 login failed", exception)
         val redirectUrl =
             UriComponentsBuilder
                 .fromUriString(properties.frontendCallbackUrl)
@@ -76,5 +78,9 @@ class OAuth2LoginFailureHandler(
                 .encode()
                 .toUriString()
         response.sendRedirect(redirectUrl)
+    }
+
+    companion object {
+        private val log = LoggerFactory.getLogger(OAuth2LoginFailureHandler::class.java)
     }
 }

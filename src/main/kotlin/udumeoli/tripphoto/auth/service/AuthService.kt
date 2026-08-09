@@ -83,7 +83,6 @@ class AuthService(
                 serviceUserRepository.save(
                     ServiceUser(
                         nickname = normalizedNickname,
-                        profileImageUrl = profile.profileImageUrl ?: "DEFAULT",
                     ),
                 )
             val userId = requireNotNull(user.id)

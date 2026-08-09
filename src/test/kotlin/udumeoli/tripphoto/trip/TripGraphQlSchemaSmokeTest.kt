@@ -1,5 +1,6 @@
 package udumeoli.tripphoto.trip
 
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.anyString
@@ -8,9 +9,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.graphql.ExecutionGraphQlService
 import org.springframework.graphql.test.tester.ExecutionGraphQlServiceTester
+import org.springframework.security.authentication.TestingAuthenticationToken
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
-import udumeoli.tripphoto.config.CurrentUserGraphQlInterceptor
 import udumeoli.tripphoto.image.entity.Image
 import udumeoli.tripphoto.image.repository.ImageRepository
 import udumeoli.tripphoto.image.storage.S3StorageAdapter
@@ -49,6 +51,7 @@ class TripGraphQlSchemaSmokeTest {
 
     @BeforeEach
     fun setUp() {
+        SecurityContextHolder.clearContext()
         tripImageRepository.deleteAll()
         tripRecordRepository.deleteAll()
         tripRepository.deleteAll()
@@ -62,6 +65,11 @@ class TripGraphQlSchemaSmokeTest {
         Mockito
             .`when`(storageAdapter.createUploadUrl(anyString(), anyString()))
             .thenReturn("https://upload.example.com/a.jpg?sig=1")
+    }
+
+    @AfterEach
+    fun tearDown() {
+        SecurityContextHolder.clearContext()
     }
 
     @Test
@@ -478,13 +486,10 @@ class TripGraphQlSchemaSmokeTest {
 
     private fun graphQlTester(user: ServiceUser): ExecutionGraphQlServiceTester {
         val userId = requireNotNull(user.id)
+        SecurityContextHolder.getContext().authentication =
+            TestingAuthenticationToken(userId.toString(), null, emptyList())
         return ExecutionGraphQlServiceTester
             .builder(graphQlService)
-            .configureExecutionInput { _, builder ->
-                builder
-                    .graphQLContext { context ->
-                        context.put(CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY, userId)
-                    }.build()
-            }.build()
+            .build()
     }
 }

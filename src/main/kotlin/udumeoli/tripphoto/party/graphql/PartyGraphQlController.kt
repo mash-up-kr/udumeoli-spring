@@ -24,20 +24,16 @@ class PartyGraphQlController(
     ): List<PartyPayload> = partyQueryService.myParties(currentUserId)
 
     @QueryMapping
-    fun party(
+    fun partyDetail(
         @LoginUser currentUserId: Long,
         @Argument partyId: Long,
     ): PartyPayload = partyQueryService.party(currentUserId, partyId)
 
     @QueryMapping
     fun partyPreview(
-        @ContextValue(
-            name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
-            required = false,
-        )
-        currentUserId: Long?,
+        @LoginUser currentUserId: Long,
         @Argument inviteCode: String,
-    ): PartyPreviewPayload = partyJoinService.partyPreview(requireCurrentUserId(currentUserId), inviteCode)
+    ): PartyPreviewPayload = partyJoinService.partyPreview(currentUserId, inviteCode)
 
     @MutationMapping
     fun createParty(
@@ -49,13 +45,13 @@ class PartyGraphQlController(
     fun joinParty(
         @LoginUser currentUserId: Long,
         @Argument inviteCode: String,
-    ): PartyPayload = partyInviteService.joinParty(currentUserId, inviteCode)
+    ): PartyPayload = partyJoinService.joinParty(currentUserId, inviteCode)
 
     @MutationMapping
     fun regenerateInviteCode(
         @LoginUser currentUserId: Long,
         @Argument partyId: Long,
-    ): PartyPayload = partyInviteService.regenerateInviteCode(currentUserId, partyId)
+    ): PartyPayload = partyCommandService.regenerateInviteCode(currentUserId, partyId)
 
     @MutationMapping
     fun leaveParty(

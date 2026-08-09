@@ -29,6 +29,7 @@ spring:
 server:
   forward-headers-strategy: framework
 
+
 management:
   endpoints:
     web:
@@ -63,3 +64,4 @@ auth:
   cors-allowed-origins:
     - http://localhost:3000
     - https://udumeoli-web.vercel.app
+

@@ -7,15 +7,16 @@ import org.springframework.stereotype.Controller
 import udumeoli.tripphoto.auth.annotation.LoginUser
 import udumeoli.tripphoto.party.dto.KickMemberInput
 import udumeoli.tripphoto.party.dto.PartyPayload
+import udumeoli.tripphoto.party.dto.PartyPreviewPayload
 import udumeoli.tripphoto.party.service.PartyCommandService
-import udumeoli.tripphoto.party.service.PartyInviteService
+import udumeoli.tripphoto.party.service.PartyJoinService
 import udumeoli.tripphoto.party.service.PartyQueryService
 
 @Controller
 class PartyGraphQlController(
     private val partyQueryService: PartyQueryService,
     private val partyCommandService: PartyCommandService,
-    private val partyInviteService: PartyInviteService,
+    private val partyJoinService: PartyJoinService,
 ) {
     @QueryMapping
     fun myParties(
@@ -27,6 +28,16 @@ class PartyGraphQlController(
         @LoginUser currentUserId: Long,
         @Argument partyId: Long,
     ): PartyPayload = partyQueryService.party(currentUserId, partyId)
+
+    @QueryMapping
+    fun partyPreview(
+        @ContextValue(
+            name = CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY,
+            required = false,
+        )
+        currentUserId: Long?,
+        @Argument inviteCode: String,
+    ): PartyPreviewPayload = partyJoinService.partyPreview(requireCurrentUserId(currentUserId), inviteCode)
 
     @MutationMapping
     fun createParty(

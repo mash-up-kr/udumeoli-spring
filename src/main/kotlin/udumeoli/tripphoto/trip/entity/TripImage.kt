@@ -11,10 +11,11 @@ import java.time.LocalDateTime
 data class TripImage(
     @Id
     val id: Long? = null,
-    @Column("trip_id")
-    val tripId: Long,
+    @Column("trip_record_id")
+    val tripRecordId: Long,
     @Column("image_id")
     val imageId: Long,
+    // 사진 촬영일. 갤러리 최신순 정렬의 기준이며, 미전달 시 등록 순서로 밀린다.
     @Column("image_date")
     val imageDate: LocalDate? = null,
     @CreatedDate

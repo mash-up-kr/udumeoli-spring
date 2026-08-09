@@ -26,6 +26,6 @@ class UserGraphQlController(
         userService.updateProfile(
             currentUserId = currentUserId,
             nickname = input.nickname,
-            profileImageUrl = input.profileImageUrl,
+            profileImage = input.profileImage,
         )
 }

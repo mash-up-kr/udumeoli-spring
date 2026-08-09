@@ -4,6 +4,13 @@ spring:
     driver-class-name: oracle.jdbc.OracleDriver
     username: APP_USER
     password: "${DB_PASSWORD}"
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: "${KAKAO_CLIENT_ID}"
+            client-secret: "${KAKAO_CLIENT_SECRET}"
 
 javax:
   net:
@@ -20,3 +27,8 @@ storage:
   access-key: "${STORAGE_ACCESS_KEY}"
   secret-key: "${STORAGE_SECRET_KEY}"
   public-base-url: "${STORAGE_PUBLIC_BASE_URL}"
+
+auth:
+  jwt:
+    secret: "${JWT_SECRET}"
+  frontend-callback-url: "${FRONTEND_LOGIN_CALLBACK_URL:https://udumeoli-web.vercel.app/login/callback}"

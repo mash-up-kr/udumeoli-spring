@@ -18,7 +18,7 @@ class ImageService(
     private val thumbnailAdapter: HttpThumbnailAdapter,
 ) {
     fun createUploadUrl(
-        uploaderId: Long,
+        uploaderId: Long?,
         contentType: String,
     ): ImageUploadTarget {
         val extension =

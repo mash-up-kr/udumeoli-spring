@@ -253,7 +253,8 @@ class PartyGraphQlTest {
             .entity(String::class.java)
             .get()
 
-    private fun createUser(nickname: String): ServiceUser = serviceUserRepository.save(ServiceUser(nickname = nickname))
+    private fun createUser(nickname: String): ServiceUser =
+        serviceUserRepository.save(ServiceUser(nickname = nickname, profileImage = 1L))
 
     private fun graphQlTester(user: ServiceUser): ExecutionGraphQlServiceTester {
         authenticateAs(user)

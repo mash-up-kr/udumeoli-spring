@@ -5,7 +5,7 @@ import udumeoli.tripphoto.user.entity.ServiceUser
 data class UserPayload(
     val id: Long,
     val nickname: String,
-    val profileImage: Int,
+    val profileImage: Long,
 )
 
 fun ServiceUser.toPayload(): UserPayload =

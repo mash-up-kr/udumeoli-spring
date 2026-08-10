@@ -137,7 +137,7 @@ class PartyJoinServiceTest {
     private fun user(
         id: Long,
         nickname: String,
-    ): ServiceUser = ServiceUser(id = id, nickname = nickname)
+    ): ServiceUser = ServiceUser(id = id, nickname = nickname, profileImage = 1L)
 
     private fun party(): Party =
         Party(

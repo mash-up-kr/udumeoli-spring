@@ -482,7 +482,8 @@ class TripGraphQlSchemaSmokeTest {
                 ).id,
         )
 
-    private fun createUser(nickname: String): ServiceUser = serviceUserRepository.save(ServiceUser(nickname = nickname))
+    private fun createUser(nickname: String): ServiceUser =
+        serviceUserRepository.save(ServiceUser(nickname = nickname, profileImage = 1L))
 
     private fun graphQlTester(user: ServiceUser): ExecutionGraphQlServiceTester {
         val userId = requireNotNull(user.id)

@@ -14,6 +14,8 @@ import udumeoli.tripphoto.auth.service.AuthException
 import udumeoli.tripphoto.auth.service.AuthService
 import udumeoli.tripphoto.auth.service.JwtTokenService
 import udumeoli.tripphoto.auth.service.SocialProfile
+import udumeoli.tripphoto.image.entity.Image
+import udumeoli.tripphoto.image.repository.ImageRepository
 import udumeoli.tripphoto.user.repository.ServiceUserRepository
 import udumeoli.tripphoto.user.repository.SocialAccountRepository
 
@@ -30,6 +32,8 @@ class AuthFlowIntegrationTest {
 
     @Autowired lateinit var serviceUserRepository: ServiceUserRepository
 
+    @Autowired lateinit var imageRepository: ImageRepository
+
     @BeforeEach
     fun setUp() {
         cleanUp()
@@ -44,7 +48,19 @@ class AuthFlowIntegrationTest {
         refreshTokenRepository.deleteAll()
         socialAccountRepository.deleteAll()
         serviceUserRepository.deleteAll()
+        imageRepository.deleteAll()
     }
+
+    private fun uploadedProfileImageId(): Long =
+        requireNotNull(
+            imageRepository
+                .save(
+                    Image(
+                        objectKey = "original/${java.util.UUID.randomUUID()}.jpg",
+                        originalUrl = "https://example.com/profile.jpg",
+                    ),
+                ).id,
+        )
 
     @Test
     fun `신규 소셜 사용자는 닉네임 입력 후 가입하고 앱 토큰을 받는다`() {
@@ -57,7 +73,12 @@ class AuthFlowIntegrationTest {
         assertThat(exchange.status).isEqualTo(AuthFlowStatus.SIGNUP_REQUIRED)
         assertThat(exchange.tokens).isNull()
 
-        val tokens = authService.completeSignup(requireNotNull(exchange.signupToken), "  직접 입력한 닉네임  ")
+        val tokens =
+            authService.completeSignup(
+                signupToken = requireNotNull(exchange.signupToken),
+                nickname = "  직접 입력한 닉네임  ",
+                profileImage = uploadedProfileImageId(),
+            )
         val accessJwt = jwtTokenService.decodeAccessToken(tokens.accessToken)
 
         assertThat(serviceUserRepository.findById(accessJwt.subject.toLong()).orElseThrow().nickname).isEqualTo("직접 입력한 닉네임")
@@ -70,7 +91,11 @@ class AuthFlowIntegrationTest {
     fun `기존 소셜 사용자는 즉시 로그인하고 refresh token은 한 번만 사용할 수 있다`() {
         val signupCode = authService.prepareOAuthLogin(SocialProfile("kakao", "kakao-456"))
         val signupToken = requireNotNull(authService.exchangeLoginCode(signupCode).signupToken)
-        authService.completeSignup(signupToken, "회원")
+        authService.completeSignup(
+            signupToken = signupToken,
+            nickname = "회원",
+            profileImage = uploadedProfileImageId(),
+        )
 
         val loginCode = authService.prepareOAuthLogin(SocialProfile("kakao", "kakao-456"))
         assertThat(refreshTokenRepository.findAll()).hasSize(1)
@@ -91,6 +116,15 @@ class AuthFlowIntegrationTest {
         authService.exchangeLoginCode(code)
 
         assertThatThrownBy { authService.exchangeLoginCode(code) }.isInstanceOf(AuthException::class.java)
+    }
+
+    @Test
+    fun `허용되지 않는 contentType으로 회원가입용 업로드 URL을 요청하면 AuthException으로 실패한다`() {
+        val code = authService.prepareOAuthLogin(SocialProfile("kakao", "bad-content-type"))
+        val signupToken = requireNotNull(authService.exchangeLoginCode(code).signupToken)
+
+        assertThatThrownBy { authService.createSignupImageUploadUrl(signupToken, "image/gif") }
+            .isInstanceOf(AuthException::class.java)
     }
 
     @Test

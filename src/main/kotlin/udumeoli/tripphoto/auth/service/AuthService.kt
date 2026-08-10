@@ -9,6 +9,8 @@ import udumeoli.tripphoto.auth.dto.LoginCodeExchangeResponse
 import udumeoli.tripphoto.auth.dto.TokenResponse
 import udumeoli.tripphoto.auth.entity.RefreshToken
 import udumeoli.tripphoto.auth.repository.RefreshTokenRepository
+import udumeoli.tripphoto.image.dto.ImageUploadTarget
+import udumeoli.tripphoto.image.service.ImageService
 import udumeoli.tripphoto.user.entity.ServiceUser
 import udumeoli.tripphoto.user.entity.SocialAccount
 import udumeoli.tripphoto.user.repository.ServiceUserRepository
@@ -25,7 +27,18 @@ class AuthService(
     private val refreshTokenRepository: RefreshTokenRepository,
     private val jwtTokenService: JwtTokenService,
     private val loginCodeStore: OAuthLoginCodeStore,
+    private val imageService: ImageService,
 ) {
+    fun createSignupImageUploadUrl(
+        signupToken: String,
+        contentType: String,
+    ): ImageUploadTarget {
+        jwtTokenService.decodeSignupToken(signupToken)
+        return runCatching { imageService.createUploadUrl(uploaderId = null, contentType = contentType) }
+            .getOrElse {
+                throw AuthException(AuthErrorCode.VALIDATION_ERROR, HttpStatus.BAD_REQUEST, "허용되지 않는 이미지 형식입니다.", it)
+            }
+    }
     @Transactional
     fun prepareOAuthLogin(profile: SocialProfile): String {
         val socialAccount = socialAccountRepository.findByProviderAndProviderUserId(profile.provider, profile.providerUserId)
@@ -67,11 +80,15 @@ class AuthService(
     fun completeSignup(
         signupToken: String,
         nickname: String,
+        profileImage: Long,
     ): TokenResponse {
         val normalizedNickname = nickname.trim()
         if (normalizedNickname.isEmpty() || normalizedNickname.length > MAX_NICKNAME_LENGTH) {
-            throw AuthException(AuthErrorCode.VALIDATION_ERROR, HttpStatus.BAD_REQUEST, "닉네임은 1자 이상 40자 이하로 입력해주세요.")
+            throw AuthException(AuthErrorCode.VALIDATION_ERROR, HttpStatus.BAD_REQUEST, "닉네임은 1자 이상 6자 이하로 입력해주세요.")
         }
+
+        validateImageExists(profileImage)
+        // TODO: 업로드한 프로필 사진(프리셋 아님)이면 imageService.requestThumbnails(...)로 썸네일 생성 요청
 
         val profile = jwtTokenService.decodeSignupToken(signupToken)
         if (socialAccountRepository.findByProviderAndProviderUserId(profile.provider, profile.providerUserId) != null) {
@@ -83,6 +100,7 @@ class AuthService(
                 serviceUserRepository.save(
                     ServiceUser(
                         nickname = normalizedNickname,
+                        profileImage = profileImage
                     ),
                 )
             val userId = requireNotNull(user.id)
@@ -137,6 +155,13 @@ class AuthService(
             ),
         )
         return issued.response
+    }
+
+    private fun validateImageExists(imageId: Long) {
+        runCatching { imageService.getImages(listOf(imageId)) }
+            .onFailure {
+                throw AuthException(AuthErrorCode.VALIDATION_ERROR, HttpStatus.BAD_REQUEST, "존재하지 않는 이미지입니다.", it)
+            }
     }
 
     private fun hash(value: String): String =

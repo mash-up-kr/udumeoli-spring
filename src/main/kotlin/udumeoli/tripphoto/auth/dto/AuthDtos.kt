@@ -12,7 +12,7 @@ data class CompleteSignupRequest(
     @field:NotBlank
     val signupToken: String,
     @field:NotBlank
-    @field:Size(max = 40)
+    @field:Size(max = 6)
     val nickname: String,
 )
 

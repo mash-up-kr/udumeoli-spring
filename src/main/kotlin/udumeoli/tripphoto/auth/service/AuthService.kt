@@ -39,6 +39,7 @@ class AuthService(
                 throw AuthException(AuthErrorCode.VALIDATION_ERROR, HttpStatus.BAD_REQUEST, "허용되지 않는 이미지 형식입니다.", it)
             }
     }
+
     @Transactional
     fun prepareOAuthLogin(profile: SocialProfile): String {
         val socialAccount = socialAccountRepository.findByProviderAndProviderUserId(profile.provider, profile.providerUserId)
@@ -100,7 +101,7 @@ class AuthService(
                 serviceUserRepository.save(
                     ServiceUser(
                         nickname = normalizedNickname,
-                        profileImage = profileImage
+                        profileImage = profileImage,
                     ),
                 )
             val userId = requireNotNull(user.id)

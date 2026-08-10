@@ -158,8 +158,8 @@ type Mutation {
 type User {
     id: ID!
     nickname: String!
-    "프리셋 아바타 번호. 미설정 시 서버가 기본값을 채워 내려준다. (null 아님)"
-    profileImage: Int!
+    "프리셋 아바타 코드(1~4) 또는 업로드한 사진의 imageId. 미설정 시 서버가 기본값을 채워 내려준다. (null 아님)"
+    profileImage: ID!
 }
 
 type Party {
@@ -259,8 +259,8 @@ type TripStats {
 
 input UpdateProfileInput {
     nickname: String!
-    "미전달(null) 시 기존 값 유지. 프리셋 아바타 번호."
-    profileImage: Int
+    "미전달(null) 시 기존 값 유지. 프리셋 아바타 코드(1~4) 또는 업로드한 사진의 imageId."
+    profileImage: ID
 }
 
 input KickMemberInput {

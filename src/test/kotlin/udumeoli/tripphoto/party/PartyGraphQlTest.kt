@@ -1,15 +1,17 @@
 package udumeoli.tripphoto.party
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.graphql.ExecutionGraphQlService
 import org.springframework.graphql.test.tester.ExecutionGraphQlServiceTester
+import org.springframework.security.authentication.TestingAuthenticationToken
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.test.context.ActiveProfiles
 import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
-import udumeoli.tripphoto.config.CurrentUserGraphQlInterceptor
 import udumeoli.tripphoto.party.repository.PartyMemberRepository
 import udumeoli.tripphoto.party.repository.PartyRepository
 import udumeoli.tripphoto.user.entity.ServiceUser
@@ -31,6 +33,12 @@ class PartyGraphQlTest {
         partyMemberRepository.deleteAll()
         partyRepository.deleteAll()
         serviceUserRepository.deleteAll()
+        SecurityContextHolder.clearContext()
+    }
+
+    @AfterEach
+    fun tearDown() {
+        SecurityContextHolder.clearContext()
     }
 
     @Test
@@ -245,17 +253,18 @@ class PartyGraphQlTest {
             .entity(String::class.java)
             .get()
 
-    private fun createUser(nickname: String): ServiceUser = serviceUserRepository.save(ServiceUser(nickname = nickname))
+    private fun createUser(nickname: String): ServiceUser =
+        serviceUserRepository.save(ServiceUser(nickname = nickname, profileImage = 1L))
 
     private fun graphQlTester(user: ServiceUser): ExecutionGraphQlServiceTester {
-        val userId = requireNotNull(user.id)
+        authenticateAs(user)
         return ExecutionGraphQlServiceTester
             .builder(graphQlService)
-            .configureExecutionInput { _, builder ->
-                builder
-                    .graphQLContext { context ->
-                        context.put(CurrentUserGraphQlInterceptor.CURRENT_USER_ID_CONTEXT_KEY, userId)
-                    }.build()
-            }.build()
+            .build()
+    }
+
+    private fun authenticateAs(user: ServiceUser) {
+        SecurityContextHolder.getContext().authentication =
+            TestingAuthenticationToken(requireNotNull(user.id).toString(), null, "ROLE_USER")
     }
 }

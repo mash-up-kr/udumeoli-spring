@@ -111,7 +111,7 @@ class PartyCommandServiceTest {
     private fun user(
         id: Long,
         nickname: String,
-    ): ServiceUser = ServiceUser(id = id, nickname = nickname)
+    ): ServiceUser = ServiceUser(id = id, nickname = nickname, profileImage = 1L)
 
     private fun audit(): AuditMetadata = AuditMetadata(createdAt = now, updatedAt = now)
 }

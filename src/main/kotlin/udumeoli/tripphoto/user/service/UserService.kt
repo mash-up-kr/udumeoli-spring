@@ -20,9 +20,10 @@ class UserService(
     fun updateProfile(
         currentUserId: Long,
         nickname: String,
-        profileImage: Int?,
+        profileImage: Long?,
     ): UserPayload {
         validateNonEmpty(nickname, "닉네임을 입력해주세요.")
+        // TODO: 업로드한 프로필 사진(프리셋 아님)으로 바꾼 경우 썸네일 생성 요청 필요
         val user = getCurrentUser(currentUserId)
         return serviceUserRepository
             .save(user.updateProfile(nickname, profileImage))

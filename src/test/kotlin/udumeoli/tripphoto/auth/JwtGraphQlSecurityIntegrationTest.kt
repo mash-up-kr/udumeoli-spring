@@ -48,7 +48,7 @@ class JwtGraphQlSecurityIntegrationTest {
 
     @Test
     fun `GraphQL은 Bearer access token의 사용자를 식별한다`() {
-        val user = serviceUserRepository.save(ServiceUser(nickname = "JWT 회원"))
+        val user = serviceUserRepository.save(ServiceUser(nickname = "JWT 회원", profileImage = 1L))
         val accessToken = jwtTokenService.issueTokenPair(requireNotNull(user.id)).response.accessToken
 
         mockMvc

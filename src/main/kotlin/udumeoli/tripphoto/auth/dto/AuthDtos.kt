@@ -1,6 +1,7 @@
 package udumeoli.tripphoto.auth.dto
 
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Size
 
 data class ExchangeLoginCodeRequest(
@@ -14,6 +15,15 @@ data class CompleteSignupRequest(
     @field:NotBlank
     @field:Size(max = 6)
     val nickname: String,
+    @field:NotNull
+    val profileImage: Long?,
+)
+
+data class SignupImageUploadUrlRequest(
+    @field:NotBlank
+    val signupToken: String,
+    @field:NotBlank
+    val contentType: String,
 )
 
 data class RefreshAccessTokenRequest(

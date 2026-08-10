@@ -15,9 +15,11 @@ import udumeoli.tripphoto.auth.dto.ExchangeLoginCodeRequest
 import udumeoli.tripphoto.auth.dto.LoginCodeExchangeResponse
 import udumeoli.tripphoto.auth.dto.LogoutRequest
 import udumeoli.tripphoto.auth.dto.RefreshAccessTokenRequest
+import udumeoli.tripphoto.auth.dto.SignupImageUploadUrlRequest
 import udumeoli.tripphoto.auth.dto.TokenResponse
 import udumeoli.tripphoto.auth.service.AuthException
 import udumeoli.tripphoto.auth.service.AuthService
+import udumeoli.tripphoto.image.dto.ImageUploadTarget
 
 @RestController
 @RequestMapping("/api/auth")
@@ -32,7 +34,17 @@ class AuthController(
     @PostMapping("/signup")
     fun signup(
         @Valid @RequestBody request: CompleteSignupRequest,
-    ): TokenResponse = authService.completeSignup(request.signupToken, request.nickname)
+    ): TokenResponse =
+        authService.completeSignup(
+            signupToken = request.signupToken,
+            nickname = request.nickname,
+            profileImage = requireNotNull(request.profileImage),
+        )
+
+    @PostMapping("/signup/image-upload-url")
+    fun signupImageUploadUrl(
+        @Valid @RequestBody request: SignupImageUploadUrlRequest,
+    ): ImageUploadTarget = authService.createSignupImageUploadUrl(request.signupToken, request.contentType)
 
     @PostMapping("/refresh")
     fun refresh(

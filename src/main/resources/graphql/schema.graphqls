@@ -46,7 +46,6 @@ scalar DateTime
 type Query {
     """
     내 프로필 (토큰 기준).
-    온보딩(닉네임 설정) 완료 여부는 REST 로그인 응답(isNewUser)으로 판단
     """
     me: User!
 
@@ -160,6 +159,11 @@ type User {
     nickname: String!
     "프리셋 아바타 코드(1~4) 또는 업로드한 사진의 imageId. 미설정 시 서버가 기본값을 채워 내려준다. (null 아님)"
     profileImage: ID!
+    """
+    업로드한 프로필 사진의 URL. profileImage가 프리셋 코드(1~4)면 null — 그때는 프론트가 코드로 내장 이미지를 렌더링한다.
+    [주의] 현재 me 쿼리에서만 채워진다. 다른 곳(파티 멤버 등)의 User는 항상 null.
+    """
+    profileImageUrl: String
 }
 
 type Party {

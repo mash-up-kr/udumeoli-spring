@@ -65,6 +65,7 @@ auth:
   # /oauth2/authorization/kakao?frontendRedirect=<이 목록 중 하나> 로 요청하면 그쪽으로 리다이렉트한다.
   allowed-frontend-callback-urls:
     - http://localhost:3000/login/callback
+    - https://udumeoli-web.vercel.app/login/callback
   cors-allowed-origins:
     - http://localhost:3000
     - https://udumeoli-web.vercel.app

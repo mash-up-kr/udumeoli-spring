@@ -6,6 +6,7 @@ data class UserPayload(
     val id: Long,
     val nickname: String,
     val profileImage: Long,
+    val profileImageUrl: String? = null,
 )
 
 fun ServiceUser.toPayload(): UserPayload =

@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import udumeoli.tripphoto.common.graphql.GraphQlDomainException
 import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
+import udumeoli.tripphoto.image.service.ImageService
 import udumeoli.tripphoto.user.dto.UserPayload
 import udumeoli.tripphoto.user.dto.toPayload
 import udumeoli.tripphoto.user.entity.ServiceUser
@@ -12,9 +13,18 @@ import udumeoli.tripphoto.user.repository.ServiceUserRepository
 @Service
 class UserService(
     private val serviceUserRepository: ServiceUserRepository,
+    private val imageService: ImageService,
 ) {
     @Transactional(readOnly = true)
-    fun me(currentUserId: Long): UserPayload = getCurrentUser(currentUserId).toPayload()
+    fun me(currentUserId: Long): UserPayload {
+        val user = getCurrentUser(currentUserId)
+        return user.toPayload().copy(profileImageUrl = resolveProfileImageUrl(user.profileImage))
+    }
+
+    private fun resolveProfileImageUrl(profileImage: Long): String? =
+        runCatching { imageService.getImages(listOf(profileImage)).first() }
+            .getOrNull()
+            ?.let { it.thumbnailUrl ?: it.originalUrl }
 
     @Suppress("ForbiddenComment")
     @Transactional

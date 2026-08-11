@@ -9,18 +9,21 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import udumeoli.tripphoto.common.graphql.GraphQlDomainException
 import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
+import udumeoli.tripphoto.image.service.ImageService
 import udumeoli.tripphoto.user.entity.ServiceUser
 import udumeoli.tripphoto.user.repository.ServiceUserRepository
 import java.util.Optional
 
 class UserServiceTest {
     private lateinit var serviceUserRepository: ServiceUserRepository
+    private lateinit var imageService: ImageService
     private lateinit var userService: UserService
 
     @BeforeEach
     fun setUp() {
         serviceUserRepository = mockk()
-        userService = UserService(serviceUserRepository)
+        imageService = mockk()
+        userService = UserService(serviceUserRepository, imageService)
     }
 
     @Test

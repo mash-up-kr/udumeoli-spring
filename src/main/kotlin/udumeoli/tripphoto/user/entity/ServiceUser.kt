@@ -24,8 +24,4 @@ data class ServiceUser(
             nickname = nickname,
             profileImage = profileImage ?: this.profileImage,
         )
-
-    companion object {
-        val PRESET_PROFILE_IMAGE_IDS = 1L..4L
-    }
 }

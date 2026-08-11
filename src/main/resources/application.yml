@@ -61,6 +61,10 @@ auth:
     signup-token-ttl: 10m
   oauth-login-code-ttl: 2m
   frontend-callback-url: "${FRONTEND_LOGIN_CALLBACK_URL:http://localhost:3000/login/callback}"
+  # 배포 서버에서도 로컬 프론트로 로그인 결과를 돌려받을 수 있게 하는 화이트리스트.
+  # /oauth2/authorization/kakao?frontendRedirect=<이 목록 중 하나> 로 요청하면 그쪽으로 리다이렉트한다.
+  allowed-frontend-callback-urls:
+    - http://localhost:3000/login/callback
   cors-allowed-origins:
     - http://localhost:3000
     - https://udumeoli-web.vercel.app

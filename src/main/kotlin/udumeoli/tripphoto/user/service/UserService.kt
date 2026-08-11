@@ -16,6 +16,7 @@ class UserService(
     @Transactional(readOnly = true)
     fun me(currentUserId: Long): UserPayload = getCurrentUser(currentUserId).toPayload()
 
+    @Suppress("ForbiddenComment")
     @Transactional
     fun updateProfile(
         currentUserId: Long,

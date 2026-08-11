@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.core.authority.SimpleGrantedAuthority
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.JwtDecoder
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter
@@ -19,6 +20,7 @@ import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 import udumeoli.tripphoto.auth.dto.AuthErrorResponse
 import udumeoli.tripphoto.auth.service.JwtTokenService
+import udumeoli.tripphoto.auth.web.FrontendCallbackOverrideFilter
 import udumeoli.tripphoto.auth.web.OAuth2LoginFailureHandler
 import udumeoli.tripphoto.auth.web.OAuth2LoginSuccessHandler
 
@@ -32,8 +34,10 @@ class SecurityConfig {
         objectMapper: ObjectMapper,
         successHandler: OAuth2LoginSuccessHandler,
         failureHandler: OAuth2LoginFailureHandler,
+        frontendCallbackOverrideFilter: FrontendCallbackOverrideFilter,
     ): SecurityFilterChain =
         http
+            .addFilterBefore(frontendCallbackOverrideFilter, OAuth2AuthorizationRequestRedirectFilter::class.java)
             .cors { }
             .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) }

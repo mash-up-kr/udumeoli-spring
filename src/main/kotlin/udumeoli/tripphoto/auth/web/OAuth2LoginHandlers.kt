@@ -28,10 +28,15 @@ class OAuth2LoginSuccessHandler(
         val attributes = oauth.principal.attributes
         val profile = extractProfile(oauth.authorizedClientRegistrationId, attributes)
         val code = authService.prepareOAuthLogin(profile)
+        val callbackBase = resolveFrontendCallbackUrl(request)
         SecurityContextHolder.clearContext()
         request.getSession(false)?.invalidate()
-        response.sendRedirect(callbackUrl("code", code))
+        response.sendRedirect(callbackUrl(callbackBase, "code", code))
     }
+
+    private fun resolveFrontendCallbackUrl(request: HttpServletRequest): String =
+        request.getSession(false)?.getAttribute(FRONTEND_CALLBACK_SESSION_ATTRIBUTE) as? String
+            ?: properties.frontendCallbackUrl
 
     private fun extractProfile(
         provider: String,
@@ -49,11 +54,12 @@ class OAuth2LoginSuccessHandler(
     }
 
     private fun callbackUrl(
+        base: String,
         name: String,
         value: String,
     ): String =
         UriComponentsBuilder
-            .fromUriString(properties.frontendCallbackUrl)
+            .fromUriString(base)
             .queryParam(name, value)
             .build()
             .encode()
@@ -70,9 +76,12 @@ class OAuth2LoginFailureHandler(
         exception: org.springframework.security.core.AuthenticationException,
     ) {
         log.warn("OAuth2 login failed", exception)
+        val callbackBase =
+            request.getSession(false)?.getAttribute(FRONTEND_CALLBACK_SESSION_ATTRIBUTE) as? String
+                ?: properties.frontendCallbackUrl
         val redirectUrl =
             UriComponentsBuilder
-                .fromUriString(properties.frontendCallbackUrl)
+                .fromUriString(callbackBase)
                 .queryParam("error", "oauth_login_failed")
                 .build()
                 .encode()

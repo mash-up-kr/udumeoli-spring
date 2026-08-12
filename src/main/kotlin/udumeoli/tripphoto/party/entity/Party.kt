@@ -21,7 +21,5 @@ data class Party(
 ) {
     fun isOwner(userId: Long): Boolean = ownerId == userId
 
-    fun canLeave(userId: Long): Boolean = !isOwner(userId)
-
     fun canKick(targetUserId: Long): Boolean = !isOwner(targetUserId)
 }

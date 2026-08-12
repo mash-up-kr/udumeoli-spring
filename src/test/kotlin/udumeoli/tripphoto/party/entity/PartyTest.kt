@@ -13,14 +13,6 @@ class PartyTest {
     }
 
     @Test
-    fun `방장은 나갈 수 없고 멤버는 나갈 수 있다`() {
-        val party = party()
-
-        assertThat(party.canLeave(1)).isFalse()
-        assertThat(party.canLeave(2)).isTrue()
-    }
-
-    @Test
     fun `방장은 강퇴할 수 없고 멤버는 강퇴할 수 있다`() {
         val party = party()
 

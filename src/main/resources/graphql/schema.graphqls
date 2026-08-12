@@ -17,7 +17,7 @@
 # - 사용하는 코드 목록:
 #   UNAUTHENTICATED / FORBIDDEN / PARTY_NOT_FOUND / TRIP_NOT_FOUND / IMAGE_NOT_FOUND
 #   / REGION_NOT_FOUND / MEMBER_NOT_FOUND / INVALID_INVITE_CODE / IMAGE_NOT_UPLOADED
-#   / INVITE_CODE_CONFLICT / ALREADY_JOINED_PARTY / PARTY_FULL / CANNOT_REMOVE_OWNER / PARTY_HAS_MEMBERS
+#   / INVITE_CODE_CONFLICT / ALREADY_JOINED_PARTY / PARTY_FULL / CANNOT_REMOVE_OWNER
 #   / OWNER_CANNOT_LEAVE / RATE_LIMITED / VALIDATION_ERROR
 #   / TRIP_RECORD_NOT_FOUND
 #
@@ -103,15 +103,17 @@ type Mutation {
     regenerateInviteCode(partyId: ID!): Party!
 
     """
-    팟 나가기. 성공 시 나간 팟의 id를 반환.
-    owner는 나갈 수 없다. owner가 호출하면 OWNER_CANNOT_LEAVE 반환.
+    팟 나가기. 성공 시 나간 팟(또는 삭제된 팟)의 id를 반환.
+    [정책] owner가 나가면 남은 멤버 중 가장 먼저 참여한 사람에게 owner가 자동으로 위임된다.
+    혼자 남은 owner가 나가면 deleteParty와 동일하게 팟 자체가 삭제된다.
+    나가는 멤버가 이 팟에 남긴 기록(사진/코멘트)은 서버에서 영구 삭제되며, 팟과 다른 멤버 데이터는 유지된다.
     """
     leaveParty(partyId: ID!): ID!
 
     """
     팟 삭제 (owner 전용). 성공 시 삭제된 팟의 id를 반환.
-    [정책] owner 외에 다른 멤버가 남아 있으면 삭제 불가 → PARTY_HAS_MEMBERS.
-    owner가 아니면 FORBIDDEN.
+    [정책] 다른 멤버가 남아 있어도 삭제할 수 있다. owner가 아니면 FORBIDDEN.
+    팟과 그 안의 모든 데이터(멤버십/여행/기록/이미지)가 서버에서 영구 삭제되고, 초대코드도 즉시 만료된다.
     """
     deleteParty(partyId: ID!): ID!
 

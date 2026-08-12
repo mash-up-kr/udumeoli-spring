@@ -50,6 +50,11 @@ class SecurityConfig {
                         "/oauth2/**",
                         "/login/oauth2/**",
                         "/actuator/health",
+                        // GraphiQL이 스키마(introspection)를 불러오려면 /graphql까지 열려 있어야 한다.
+                        // 데이터는 여기서 막지 않아도 안전하다. 모든 리졸버가 @LoginUser를 받고
+                        // CurrentUserProvider가 UNAUTHENTICATED를 던지므로 인증은 리졸버 계층에서 강제된다.
+                        // TODO: 운영 환경이 생기면 GraphiQL과 함께 dev 프로파일에서만 열도록 분리한다.
+                        "/graphql",
                         "/graphiql/**",
                         "/h2-console/**",
                         "/error",

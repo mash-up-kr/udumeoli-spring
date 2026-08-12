@@ -84,6 +84,14 @@ type Mutation {
     "닉네임/프로필 이미지 설정 (가입 직후 온보딩 포함)."
     updateProfile(input: UpdateProfileInput!): User!
 
+    """
+    계정 탈퇴. 성공 시 탈퇴한 사용자의 id를 반환.
+    [정책] 업로드한 모든 사진이 서버에서 영구 삭제된다.
+    소속된 모든 팟에서 탈퇴 처리되며 팟 자체는 유지된다(공석 전환) — 팟 나가기(leaveParty)와 동일한 규칙을 적용한다.
+    owner였던 팟은 남은 멤버 중 가장 먼저 참여한 사람에게 자동으로 위임되고, 혼자 남은 팟이면 팟 자체가 함께 삭제된다.
+    """
+    withdraw: ID!
+
     "여행팟 생성 — 6자리 초대코드가 발급된다. 생성자는 자동으로 owner이자 멤버가 된다."
     createParty(name: String!): Party!
 

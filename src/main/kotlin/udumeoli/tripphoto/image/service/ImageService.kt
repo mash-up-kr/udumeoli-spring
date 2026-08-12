@@ -68,6 +68,12 @@ class ImageService(
         imageRepository.deleteAllById(imageIds)
     }
 
+    /** 특정 유저가 업로드한 이미지를 모두 삭제한다. 계정 탈퇴 시, 팟 데이터 정리와 별개로 남은 업로드(프로필 사진 등)를 정리하는 용도. */
+    fun deleteAllUploadedBy(uploaderId: Long) {
+        val imageIds = imageRepository.findAllByUploaderId(uploaderId).mapNotNull { it.id }
+        deleteImages(imageIds)
+    }
+
     companion object {
         private val log = LoggerFactory.getLogger(ImageService::class.java)
 

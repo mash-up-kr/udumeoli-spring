@@ -7,11 +7,13 @@ import org.springframework.stereotype.Controller
 import udumeoli.tripphoto.auth.annotation.LoginUser
 import udumeoli.tripphoto.user.dto.UpdateProfileInput
 import udumeoli.tripphoto.user.dto.UserPayload
+import udumeoli.tripphoto.user.service.AccountWithdrawalService
 import udumeoli.tripphoto.user.service.UserService
 
 @Controller
 class UserGraphQlController(
     private val userService: UserService,
+    private val accountWithdrawalService: AccountWithdrawalService,
 ) {
     @QueryMapping
     fun me(
@@ -28,4 +30,9 @@ class UserGraphQlController(
             nickname = input.nickname,
             profileImage = input.profileImage,
         )
+
+    @MutationMapping
+    fun withdraw(
+        @LoginUser currentUserId: Long,
+    ): Long = accountWithdrawalService.withdraw(currentUserId)
 }

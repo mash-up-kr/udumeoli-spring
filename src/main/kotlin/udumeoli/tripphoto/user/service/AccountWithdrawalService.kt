@@ -2,6 +2,7 @@ package udumeoli.tripphoto.user.service
 
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import udumeoli.tripphoto.auth.repository.RefreshTokenRepository
 import udumeoli.tripphoto.image.service.ImageService
 import udumeoli.tripphoto.party.repository.PartyMemberRepository
 import udumeoli.tripphoto.party.service.PartyCommandService
@@ -21,6 +22,7 @@ class AccountWithdrawalService(
     private val socialAccountRepository: SocialAccountRepository,
     private val serviceUserRepository: ServiceUserRepository,
     private val imageService: ImageService,
+    private val refreshTokenRepository: RefreshTokenRepository,
 ) {
     @Transactional
     fun withdraw(currentUserId: Long): Long {
@@ -31,6 +33,7 @@ class AccountWithdrawalService(
 
         imageService.deleteAllUploadedBy(currentUserId)
         socialAccountRepository.deleteAll(socialAccountRepository.findAllByServiceUserId(currentUserId))
+        refreshTokenRepository.deleteAllByServiceUserId(currentUserId)
         serviceUserRepository.delete(user)
 
         return currentUserId

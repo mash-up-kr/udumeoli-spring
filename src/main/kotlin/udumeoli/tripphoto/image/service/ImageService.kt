@@ -10,6 +10,7 @@ import udumeoli.tripphoto.image.repository.ImageRepository
 import udumeoli.tripphoto.image.storage.S3StorageAdapter
 import udumeoli.tripphoto.image.thumbnail.HttpThumbnailAdapter
 import java.util.UUID
+import kotlin.jvm.optionals.getOrNull
 
 @Service
 class ImageService(
@@ -41,6 +42,8 @@ class ImageService(
             uploadUrl = storageAdapter.createUploadUrl(objectKey, contentType),
         )
     }
+
+    fun findImageOrNull(imageId: Long): Image? = imageRepository.findById(imageId).getOrNull()
 
     fun getImages(imageIds: List<Long>): List<Image> {
         val imagesById = imageRepository.findAllById(imageIds).associateBy { requireNotNull(it.id) }

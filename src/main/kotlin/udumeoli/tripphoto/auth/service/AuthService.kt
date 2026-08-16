@@ -160,10 +160,10 @@ class AuthService(
     }
 
     private fun validateImageExists(imageId: Long) {
-        runCatching { imageService.getImages(listOf(imageId)) }
-            .onFailure {
-                throw AuthException(AuthErrorCode.VALIDATION_ERROR, HttpStatus.BAD_REQUEST, "존재하지 않는 이미지입니다.", it)
-            }
+        if (ServiceUser.isPresetProfileImage(imageId)) return
+        if (imageService.findImageOrNull(imageId) == null) {
+            throw AuthException(AuthErrorCode.VALIDATION_ERROR, HttpStatus.BAD_REQUEST, "존재하지 않는 이미지입니다.")
+        }
     }
 
     private fun hash(value: String): String =

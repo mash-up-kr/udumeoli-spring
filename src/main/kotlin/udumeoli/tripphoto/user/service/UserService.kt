@@ -21,10 +21,10 @@ class UserService(
         return user.toPayload().copy(profileImageUrl = resolveProfileImageUrl(user.profileImage))
     }
 
-    private fun resolveProfileImageUrl(profileImage: Long): String? =
-        runCatching { imageService.getImages(listOf(profileImage)).first() }
-            .getOrNull()
-            ?.let { it.thumbnailUrl ?: it.originalUrl }
+    private fun resolveProfileImageUrl(profileImage: Long): String? {
+        if (ServiceUser.isPresetProfileImage(profileImage)) return null
+        return imageService.findImageOrNull(profileImage)?.let { it.thumbnailUrl ?: it.originalUrl }
+    }
 
     @Suppress("ForbiddenComment")
     @Transactional

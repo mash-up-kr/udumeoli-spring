@@ -31,4 +31,4 @@ storage:
 auth:
   jwt:
     secret: "${JWT_SECRET}"
-  frontend-callback-url: "${FRONTEND_LOGIN_CALLBACK_URL:https://udumeoli-web.vercel.app/login/callback}"
+  frontend-callback-url: "${FRONTEND_LOGIN_CALLBACK_URL:https://www.pinnned.co.kr/login/callback}"

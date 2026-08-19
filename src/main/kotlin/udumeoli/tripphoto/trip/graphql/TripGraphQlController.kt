@@ -6,10 +6,12 @@ import org.springframework.graphql.data.method.annotation.QueryMapping
 import org.springframework.stereotype.Controller
 import udumeoli.tripphoto.auth.annotation.LoginUser
 import udumeoli.tripphoto.trip.dto.CreateTripInput
+import udumeoli.tripphoto.trip.dto.PartyMapOverviewPayload
 import udumeoli.tripphoto.trip.dto.RecordTripInput
 import udumeoli.tripphoto.trip.dto.TripPayload
 import udumeoli.tripphoto.trip.dto.TripStatsPayload
 import udumeoli.tripphoto.trip.dto.VisitedRegionPayload
+import udumeoli.tripphoto.trip.service.PartyMapQueryService
 import udumeoli.tripphoto.trip.service.TripCommandService
 import udumeoli.tripphoto.trip.service.TripQueryService
 
@@ -17,6 +19,7 @@ import udumeoli.tripphoto.trip.service.TripQueryService
 class TripGraphQlController(
     private val tripQueryService: TripQueryService,
     private val tripCommandService: TripCommandService,
+    private val partyMapQueryService: PartyMapQueryService,
 ) {
     @QueryMapping
     fun partyTrips(
@@ -42,6 +45,12 @@ class TripGraphQlController(
         @LoginUser currentUserId: Long,
         @Argument partyId: Long,
     ): TripStatsPayload = tripQueryService.tripStats(currentUserId, partyId)
+
+    @QueryMapping
+    fun partyMapOverview(
+        @LoginUser currentUserId: Long,
+        @Argument partyId: Long,
+    ): PartyMapOverviewPayload = partyMapQueryService.mapOverview(currentUserId, partyId)
 
     @MutationMapping
     fun createTrip(

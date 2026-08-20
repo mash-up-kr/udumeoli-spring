@@ -306,6 +306,28 @@ class TripGraphQlSchemaSmokeTest {
     }
 
     @Test
+    fun `팟 지도 쿼리가 스키마대로 응답한다`() {
+        val owner = createUser("방장")
+        val partyId = createPartyWith(owner)
+        createTrip(owner, partyId)
+
+        graphQlTester(owner)
+            .document(
+                """
+                query {
+                  partyMapOverview(partyId: "$partyId") {
+                    memberCount
+                    country { regionCode keyword regionCount visitCount recordedMemberCount }
+                  }
+                }
+                """.trimIndent(),
+            ).execute()
+            .path("partyMapOverview.memberCount")
+            .entity(Int::class.java)
+            .isEqualTo(1)
+    }
+
+    @Test
     fun `deleteTripRecord는 마지막 기록이면 null을 반환한다`() {
         val owner = createUser("방장")
         val member = createUser("멤버")

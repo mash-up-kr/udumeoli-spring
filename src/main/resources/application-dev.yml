@@ -1,6 +1,9 @@
 spring:
   datasource:
-    url: "jdbc:oracle:thin:@udumeolidb2_medium?TNS_ADMIN=/opt/oracle/wallet"
+    # _medium/_high는 리포팅/배치용 서비스로 세션 병렬 DML이 기본 켜져 있어,
+    # 한 트랜잭션에서 같은 테이블을 두 번 이상 DELETE/UPDATE하면 ORA-12839가 난다.
+    # 이 앱처럼 트랜잭션형 CRUD 워크로드는 병렬 DML이 꺼져 있는 _tp(Transaction Processing) 서비스를 써야 한다.
+    url: "jdbc:oracle:thin:@udumeolidb2_tp?TNS_ADMIN=/opt/oracle/wallet"
     driver-class-name: oracle.jdbc.OracleDriver
     username: APP_USER
     password: "${DB_PASSWORD}"

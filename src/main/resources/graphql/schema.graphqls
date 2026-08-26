@@ -332,6 +332,19 @@ type MapCell {
     visitCount: Int!
     "\"n/N\"의 n — 이 칸에 기록을 남긴 서로 다른 현재 멤버 수. 탈퇴/강퇴된 멤버의 기록은 세지 않는다."
     recordedMemberCount: Int!
+    """
+    이 칸에 내가 아직 기록하지 않은 여행이 하나라도 있으면 true.
+    [정책] true면 스티커·색상을 칠하지 않고 회색으로 두고, "탭해서 기록하기" 툴팁과 "n/N"만 얹는다.
+    같은 지역을 여러 번 다녀왔다면 그중 하나만 안 올려도 true다 —
+    1차를 내가 기록했더라도 2차가 비어 있으면 그 칸은 다시 회색으로 돌아간다.
+    """
+    hasUnrecordedTrip: Boolean!
+    """
+    이 칸에서 가장 나중에 등록된 여행의 등록 시각.
+    "[{지역이름} 기록하기] 툴팁은 가장 최근 등록된 지역 1곳에만" 규칙을 프론트가 이 값으로 고른다 —
+    hasUnrecordedTrip이 true인 칸 중 이 값이 가장 큰 하나에만 버튼 툴팁을 붙이면 된다.
+    """
+    latestTripAt: DateTime!
 }
 
 input UpdateProfileInput {

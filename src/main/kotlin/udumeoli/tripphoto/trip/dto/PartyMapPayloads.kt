@@ -1,6 +1,7 @@
 package udumeoli.tripphoto.trip.dto
 
 import udumeoli.tripphoto.trip.entity.TripKeyword
+import java.time.LocalDateTime
 
 /**
  * 지도 한 화면 분의 집계 (GraphQL `PartyMapOverview`).
@@ -29,4 +30,8 @@ data class MapCellPayload(
     val visitCount: Int,
     /** "n/N"의 n — 이 칸에 기록을 남긴 서로 다른 "현재" 멤버 수. 탈퇴/강퇴된 멤버의 기록은 세지 않는다. */
     val recordedMemberCount: Int,
+    /** 이 칸에 내가 아직 기록하지 않은 여행이 하나라도 있으면 true. 회색 처리 + "탭해서 기록하기"의 조건이다. */
+    val hasUnrecordedTrip: Boolean,
+    /** 이 칸에서 가장 나중에 등록된 여행의 등록 시각. "가장 최근 지역 1곳에만 툴팁"을 프론트가 고르는 기준이다. */
+    val latestTripAt: LocalDateTime,
 )

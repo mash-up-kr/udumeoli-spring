@@ -73,7 +73,7 @@ class PartyMapQueryServiceTest {
         val trips =
             listOf(
                 trip(id = 1, regionCode = "32030", keyword = TripKeyword.FOOD),
-                trip(id = 2, regionCode = "32040", keyword = TripKeyword.NATURE),
+                trip(id = 2, regionCode = "32040", keyword = TripKeyword.DESSERT),
             )
         every { partyQueryService.requireMember(7L, 101L) } just Runs
         every { tripRepository.findAllByPartyId(7L) } returns trips

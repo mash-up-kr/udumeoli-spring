@@ -110,7 +110,7 @@ class PartyMapGraphQlTest {
             .isEqualTo("KR")
             .path("partyMapOverview.country.keyword")
             .entity(String::class.java)
-            .isEqualTo("NATURE")
+            .isEqualTo("DESSERT")
             .path("partyMapOverview.country.regionCount")
             .entity(Int::class.java)
             .isEqualTo(5)
@@ -188,10 +188,10 @@ class PartyMapGraphQlTest {
     ) {
         val gangneungFirst = saveTrip(partyId, "32030", TripKeyword.HEALING, "2026-03-01")
         val gangneungSecond = saveTrip(partyId, "32030", TripKeyword.FOOD, "2026-05-10")
-        val donghae = saveTrip(partyId, "32040", TripKeyword.NATURE, "2026-06-02")
+        val donghae = saveTrip(partyId, "32040", TripKeyword.DESSERT, "2026-06-02")
         val yangyang = saveTrip(partyId, "32410", TripKeyword.ACTIVITY, "2026-07-20")
-        val seoul = saveTrip(partyId, "11", TripKeyword.CITY, "2026-07-25")
-        val jeju = saveTrip(partyId, "39010", TripKeyword.NATURE, "2026-08-01")
+        val seoul = saveTrip(partyId, "11", TripKeyword.PHOTO, "2026-07-25")
+        val jeju = saveTrip(partyId, "39010", TripKeyword.DESSERT, "2026-08-01")
 
         saveRecords(gangneungFirst, owner, second)
         saveRecords(gangneungSecond, owner)

@@ -251,7 +251,7 @@ class PartyCommandServiceTest {
             id = id,
             partyId = partyId,
             regionCode = "SEOUL",
-            keyword = TripKeyword.CITY,
+            keyword = TripKeyword.PHOTO,
             startDate = LocalDate.of(2026, 7, 1),
             endDate = LocalDate.of(2026, 7, 2),
             auditMetadata = audit(),

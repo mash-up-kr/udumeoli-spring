@@ -17,7 +17,7 @@ class MapCellAggregationTest {
         val trips =
             listOf(
                 trip(id = 1, regionCode = "32030", keyword = TripKeyword.FOOD, startDate = "2026-03-01"),
-                trip(id = 2, regionCode = "32030", keyword = TripKeyword.NATURE, startDate = "2026-03-05"),
+                trip(id = 2, regionCode = "32030", keyword = TripKeyword.DESSERT, startDate = "2026-03-05"),
                 trip(id = 3, regionCode = "32030", keyword = TripKeyword.FOOD, startDate = "2026-03-10"),
             )
 
@@ -43,13 +43,13 @@ class MapCellAggregationTest {
     fun `개수와 시작일까지 같으면 나중에 등록된 여행의 키워드를 쓴다`() {
         val trips =
             listOf(
-                trip(id = 9, regionCode = "32030", keyword = TripKeyword.CULTURE, startDate = "2026-03-01"),
-                trip(id = 4, regionCode = "32030", keyword = TripKeyword.CITY, startDate = "2026-03-01"),
+                trip(id = 9, regionCode = "32030", keyword = TripKeyword.DESSERT, startDate = "2026-03-01"),
+                trip(id = 4, regionCode = "32030", keyword = TripKeyword.PHOTO, startDate = "2026-03-01"),
             )
 
         val overview = aggregate(trips, memberIdsByTripId = emptyMap(), currentMemberIds = FOUR_MEMBERS)
 
-        assertThat(overview.municipalities.single().keyword).isEqualTo(TripKeyword.CULTURE)
+        assertThat(overview.municipalities.single().keyword).isEqualTo(TripKeyword.DESSERT)
     }
 
     @Test
@@ -64,7 +64,7 @@ class MapCellAggregationTest {
 
     @Test
     fun `광역시의 2자리 코드는 시·군·구 목록에도 그대로 들어간다`() {
-        val trips = listOf(trip(id = 1, regionCode = "11", keyword = TripKeyword.CITY, startDate = "2026-07-25"))
+        val trips = listOf(trip(id = 1, regionCode = "11", keyword = TripKeyword.PHOTO, startDate = "2026-07-25"))
 
         val overview = aggregate(trips, memberIdsByTripId = emptyMap(), currentMemberIds = FOUR_MEMBERS)
 
@@ -131,21 +131,21 @@ class MapCellAggregationTest {
 
         assertThat(overview.municipalities)
             .containsExactly(
-                MapCellPayload("11", TripKeyword.CITY, regionCount = 1, visitCount = 1, recordedMemberCount = 1),
+                MapCellPayload("11", TripKeyword.PHOTO, regionCount = 1, visitCount = 1, recordedMemberCount = 1),
                 MapCellPayload("32030", TripKeyword.FOOD, regionCount = 1, visitCount = 2, recordedMemberCount = 2),
-                MapCellPayload("32040", TripKeyword.NATURE, regionCount = 1, visitCount = 1, recordedMemberCount = 3),
+                MapCellPayload("32040", TripKeyword.DESSERT, regionCount = 1, visitCount = 1, recordedMemberCount = 3),
                 MapCellPayload("32410", TripKeyword.ACTIVITY, regionCount = 1, visitCount = 1, recordedMemberCount = 1),
-                MapCellPayload("39010", TripKeyword.NATURE, regionCount = 1, visitCount = 1, recordedMemberCount = 2),
+                MapCellPayload("39010", TripKeyword.DESSERT, regionCount = 1, visitCount = 1, recordedMemberCount = 2),
             )
         assertThat(overview.provinces)
             .containsExactly(
-                MapCellPayload("11", TripKeyword.CITY, regionCount = 1, visitCount = 1, recordedMemberCount = 1),
+                MapCellPayload("11", TripKeyword.PHOTO, regionCount = 1, visitCount = 1, recordedMemberCount = 1),
                 MapCellPayload("32", TripKeyword.ACTIVITY, regionCount = 3, visitCount = 4, recordedMemberCount = 3),
-                MapCellPayload("39", TripKeyword.NATURE, regionCount = 1, visitCount = 1, recordedMemberCount = 2),
+                MapCellPayload("39", TripKeyword.DESSERT, regionCount = 1, visitCount = 1, recordedMemberCount = 2),
             )
         assertThat(overview.country)
             .isEqualTo(
-                MapCellPayload("KR", TripKeyword.NATURE, regionCount = 5, visitCount = 6, recordedMemberCount = 4),
+                MapCellPayload("KR", TripKeyword.DESSERT, regionCount = 5, visitCount = 6, recordedMemberCount = 4),
             )
     }
 
@@ -171,10 +171,10 @@ private fun walkthroughTrips(): List<Trip> =
     listOf(
         trip(id = 1, regionCode = "32030", keyword = TripKeyword.HEALING, startDate = "2026-03-01"),
         trip(id = 2, regionCode = "32030", keyword = TripKeyword.FOOD, startDate = "2026-05-10"),
-        trip(id = 3, regionCode = "32040", keyword = TripKeyword.NATURE, startDate = "2026-06-02"),
+        trip(id = 3, regionCode = "32040", keyword = TripKeyword.DESSERT, startDate = "2026-06-02"),
         trip(id = 4, regionCode = "32410", keyword = TripKeyword.ACTIVITY, startDate = "2026-07-20"),
-        trip(id = 5, regionCode = "11", keyword = TripKeyword.CITY, startDate = "2026-07-25"),
-        trip(id = 6, regionCode = "39010", keyword = TripKeyword.NATURE, startDate = "2026-08-01"),
+        trip(id = 5, regionCode = "11", keyword = TripKeyword.PHOTO, startDate = "2026-07-25"),
+        trip(id = 6, regionCode = "39010", keyword = TripKeyword.DESSERT, startDate = "2026-08-01"),
     )
 
 private fun walkthroughRecords(): Map<Long, Set<Long>> =

@@ -204,16 +204,21 @@ type PartyPreview {
 }
 
 """
-기록하기 플로우에서 고르는 여행 키워드 6종. 기존 color를 대체한다.
-지도 채색 색상은 프론트가 이 값에 매핑한다.
+기록하기 플로우에서 고르는 여행 키워드 5종. 기존 color를 대체한다.
+나열 순서는 기획의 칩 노출 순서(맛집·디저트·힐링·액티비티·사진)와 같다.
+지도 채색 색상과 스티커 이모지는 프론트가 이 값에 매핑한다.
 """
 enum TripKeyword {
-    HEALING
-    ACTIVITY
+    "맛집"
     FOOD
-    NATURE
-    CITY
-    CULTURE
+    "디저트"
+    DESSERT
+    "힐링"
+    HEALING
+    "액티비티"
+    ACTIVITY
+    "사진"
+    PHOTO
 }
 
 "팟의 한 번의 방문. 지역/기간/키워드는 팟 전체가 공유하고, 사진과 코멘트는 records에 담긴다."

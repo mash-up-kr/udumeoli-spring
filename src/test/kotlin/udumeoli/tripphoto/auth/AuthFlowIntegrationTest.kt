@@ -76,12 +76,12 @@ class AuthFlowIntegrationTest {
         val tokens =
             authService.completeSignup(
                 signupToken = requireNotNull(exchange.signupToken),
-                nickname = "  직접 입력한 닉네임  ",
+                nickname = "  민지  ",
                 profileImage = uploadedProfileImageId(),
             )
         val accessJwt = jwtTokenService.decodeAccessToken(tokens.accessToken)
 
-        assertThat(serviceUserRepository.findById(accessJwt.subject.toLong()).orElseThrow().nickname).isEqualTo("직접 입력한 닉네임")
+        assertThat(serviceUserRepository.findById(accessJwt.subject.toLong()).orElseThrow().nickname).isEqualTo("민지")
         assertThat(socialAccountRepository.findByProviderAndProviderUserId("kakao", "kakao-123")?.providerEmail)
             .isNull()
         assertThat(refreshTokenRepository.findAll()).hasSize(1)

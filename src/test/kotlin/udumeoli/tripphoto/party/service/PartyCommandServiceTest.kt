@@ -117,6 +117,73 @@ class PartyCommandServiceTest {
     }
 
     @Test
+    fun `팟장이 아닌 멤버도 팟 이름을 바꿀 수 있다`() {
+        val party = party(ownerId = 1)
+        val member = user(2, "팟원")
+        val savedPartySlot = slot<Party>()
+
+        every { partyRepository.findById(10L) } returns java.util.Optional.of(party)
+        every { userService.getCurrentUser(2L) } returns member
+        every { partyMemberRepository.existsByPartyIdAndServiceUserId(10L, 2L) } returns true
+        every { partyRepository.save(capture(savedPartySlot)) } answers { savedPartySlot.captured }
+        stubPartyPayload(partyId = 10, memberUserIds = listOf(1, 2), users = listOf(user(1, "방장"), member))
+
+        val result = partyCommandService.renameParty(currentUserId = 2, partyId = 10, name = "우두머리 ❤️ 영원히")
+
+        assertThat(result.name).isEqualTo("우두머리 ❤️ 영원히")
+        assertThat(savedPartySlot.captured.inviteCode).isEqualTo("abc123")
+        assertThat(savedPartySlot.captured.ownerId).isEqualTo(1)
+    }
+
+    @Test
+    fun `멤버가 아니면 팟 이름을 바꿀 수 없다`() {
+        every { partyRepository.findById(10L) } returns java.util.Optional.of(party(ownerId = 1))
+        every { userService.getCurrentUser(9L) } returns user(9, "외부인")
+        every { partyMemberRepository.existsByPartyIdAndServiceUserId(10L, 9L) } returns false
+
+        val thrown =
+            catchThrowable {
+                partyCommandService.renameParty(currentUserId = 9, partyId = 10, name = "가로채기")
+            }
+
+        assertThat(thrown).isInstanceOf(GraphQlDomainException::class.java)
+        assertThat((thrown as GraphQlDomainException).code).isEqualTo(GraphQlErrorCode.FORBIDDEN)
+        verify(exactly = 0) { partyRepository.save(any<Party>()) }
+    }
+
+    @Test
+    fun `빈 이름으로는 팟 이름을 바꿀 수 없다`() {
+        every { partyRepository.findById(10L) } returns java.util.Optional.of(party(ownerId = 1))
+        every { userService.getCurrentUser(1L) } returns user(1, "방장")
+        every { partyMemberRepository.existsByPartyIdAndServiceUserId(10L, 1L) } returns true
+
+        val thrown =
+            catchThrowable {
+                partyCommandService.renameParty(currentUserId = 1, partyId = 10, name = "")
+            }
+
+        assertThat(thrown).isInstanceOf(GraphQlDomainException::class.java)
+        assertThat((thrown as GraphQlDomainException).code).isEqualTo(GraphQlErrorCode.VALIDATION_ERROR)
+        verify(exactly = 0) { partyRepository.save(any<Party>()) }
+    }
+
+    @Test
+    fun `팟 이름은 공백만으로도 지을 수 있다`() {
+        // 닉네임과 달리 팟 이름은 "1자 이상이면 공백도 가능"이 기획 규칙이다.
+        val savedPartySlot = slot<Party>()
+
+        every { partyRepository.findById(10L) } returns java.util.Optional.of(party(ownerId = 1))
+        every { userService.getCurrentUser(1L) } returns user(1, "방장")
+        every { partyMemberRepository.existsByPartyIdAndServiceUserId(10L, 1L) } returns true
+        every { partyRepository.save(capture(savedPartySlot)) } answers { savedPartySlot.captured }
+        stubPartyPayload(partyId = 10, memberUserIds = listOf(1), users = listOf(user(1, "방장")))
+
+        val result = partyCommandService.renameParty(currentUserId = 1, partyId = 10, name = " ")
+
+        assertThat(result.name).isEqualTo(" ")
+    }
+
+    @Test
     fun `일반 멤버가 나가면 멤버십만 삭제되고 방장은 그대로다`() {
         val party = party(ownerId = 1)
         val memberRow = PartyMember(id = 200, partyId = 10, serviceUserId = 2, createdAt = now)

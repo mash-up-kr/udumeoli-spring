@@ -11,6 +11,7 @@
 #   멤버가 아닌 팟의 partyId로 요청하면 FORBIDDEN 을 반환한다.
 # - owner 전용 액션(deleteParty, kickMember, regenerateInviteCode)은
 #   요청자가 owner여야 하며, 아니면 FORBIDDEN.
+#   팟 이름 변경(renameParty)은 owner 전용이 아니다 — 멤버면 누구나 할 수 있다.
 #
 # [에러 규격]
 # - GraphQL 표준 errors 배열을 사용하고, extensions.code 로 분기 가능한 코드를 내려준다.
@@ -49,7 +50,10 @@ type Query {
     """
     me: User!
 
-    "내가 속한 여행팟 목록, 소속 팟이 없으면 빈 배열."
+    """
+    내가 속한 여행팟 목록, 소속 팟이 없으면 빈 배열.
+    정렬: 내가 참여한 시각 내림차순 — 가장 최근에 들어간 팟이 맨 위다. (마이페이지 "내 팟" 순서)
+    """
     myParties: [Party!]!
 
     "팟 상세 (멤버 목록 포함). 내가 멤버가 아니면 FORBIDDEN."
@@ -101,6 +105,13 @@ type Mutation {
 
     "여행팟 생성 — 6자리 초대코드가 발급된다. 생성자는 자동으로 owner이자 멤버가 된다."
     createParty(name: String!): Party!
+
+    """
+    팟 이름 변경. 성공 시 갱신된 Party를 반환.
+    이름 규칙은 createParty와 같다 — 1자 이상이면 되고 공백·중복·특수기호를 가리지 않는다.
+    [정책] owner 전용이 아니다. 멤버 누구나 바꿀 수 있고, 멤버가 아니면 FORBIDDEN.
+    """
+    renameParty(partyId: ID!, name: String!): Party!
 
     """
     초대코드로 팟 참여.

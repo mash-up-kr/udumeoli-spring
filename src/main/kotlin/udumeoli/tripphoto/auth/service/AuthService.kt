@@ -11,6 +11,7 @@ import udumeoli.tripphoto.auth.entity.RefreshToken
 import udumeoli.tripphoto.auth.repository.RefreshTokenRepository
 import udumeoli.tripphoto.image.dto.ImageUploadTarget
 import udumeoli.tripphoto.image.service.ImageService
+import udumeoli.tripphoto.user.entity.Nickname
 import udumeoli.tripphoto.user.entity.ServiceUser
 import udumeoli.tripphoto.user.entity.SocialAccount
 import udumeoli.tripphoto.user.repository.ServiceUserRepository
@@ -84,10 +85,9 @@ class AuthService(
         nickname: String,
         profileImage: Long,
     ): TokenResponse {
-        val normalizedNickname = nickname.trim()
-        if (normalizedNickname.isEmpty() || normalizedNickname.length > MAX_NICKNAME_LENGTH) {
-            throw AuthException(AuthErrorCode.VALIDATION_ERROR, HttpStatus.BAD_REQUEST, "닉네임은 1자 이상 6자 이하로 입력해주세요.")
-        }
+        val normalizedNickname =
+            Nickname.normalizeOrNull(nickname)
+                ?: throw AuthException(AuthErrorCode.VALIDATION_ERROR, HttpStatus.BAD_REQUEST, Nickname.RULE_MESSAGE)
 
         validateImageExists(profileImage)
         // TODO: 업로드한 프로필 사진(프리셋 아님)이면 imageService.requestThumbnails(...)로 썸네일 생성 요청
@@ -171,8 +171,4 @@ class AuthService(
             .getInstance("SHA-256")
             .digest(value.toByteArray(StandardCharsets.UTF_8))
             .joinToString("") { "%02x".format(it) }
-
-    companion object {
-        private const val MAX_NICKNAME_LENGTH = 40
-    }
 }

@@ -16,7 +16,7 @@ import udumeoli.tripphoto.trip.repository.TripRecordRepository
 import udumeoli.tripphoto.trip.repository.TripRepository
 
 /**
- * - createTrip: 새 방문 + 내 기록
+ * - createTrip: 새 방문 + 내 기록 (같은 지역의 이전 방문이 전부 끝났을 때만)
  * - recordTrip: 이미 있는 방문에 내 기록 (재호출 시 통째 교체)
  * - deleteTripRecord: 내 기록 삭제, 마지막 기록이면 여행도 함께 정리
  */
@@ -48,6 +48,7 @@ class TripCommandService(
                 "여행 시작일은 종료일보다 늦을 수 없습니다.",
             )
         }
+        requireRegionTripsCompleted(input.partyId, regionCode)
 
         val trip =
             tripRepository.save(
@@ -98,6 +99,43 @@ class TripCommandService(
             return null
         }
         return tripQueryService.toPayload(currentUserId, trip)
+    }
+
+    /**
+     * 같은 지역의 이전 방문이 전부 끝나야 다음 방문을 등록할 수 있다.
+     * 잠금은 같은 지역에만 걸린다 — 다른 지역은 미완료 여행이 남아 있어도 자유롭게 등록한다.
+     *
+     * "끝났다"의 기준은 **현재** 팟 멤버 전원이 기록을 남겼는지다. 나가거나 강퇴된 멤버는 세지 않는다.
+     * 나간 멤버의 기록은 leaveParty가 지우고 강퇴된 멤버의 기록은 남지만, 어느 쪽이든
+     * 현재 멤버 집합에 없으면 판정에 끼어들지 않는다 — 기록하지 않고 떠난 한 사람 때문에
+     * 남은 멤버가 그 지역에 영영 묶이는 일을 막으려는 것이다.
+     *
+     * 이 지역 첫 방문이면 막을 이전 여행이 없어 조회 한 번으로 끝난다.
+     */
+    private fun requireRegionTripsCompleted(
+        partyId: Long,
+        regionCode: String,
+    ) {
+        val previousTrips = tripRepository.findAllByPartyIdAndRegionCode(partyId, regionCode)
+        if (previousTrips.isEmpty()) return
+
+        val currentMemberIds = partyQueryService.memberUserIdsInJoinOrder(partyId).toSet()
+        val recordedMemberIdsByTripId =
+            tripRecordRepository
+                .findAllByTripIdIn(previousTrips.map { requireNotNull(it.id) })
+                .groupBy { it.tripId }
+                .mapValues { (_, records) -> records.map { it.serviceUserId }.toSet() }
+
+        val hasIncompleteTrip =
+            previousTrips.any { trip ->
+                !recordedMemberIdsByTripId[requireNotNull(trip.id)].orEmpty().containsAll(currentMemberIds)
+            }
+        if (hasIncompleteTrip) {
+            throw GraphQlDomainException(
+                GraphQlErrorCode.REGION_HAS_INCOMPLETE_TRIP,
+                "모두가 기록해야 다음 여행을 기록할 수 있어요.",
+            )
+        }
     }
 
     /** 기록은 사진 1장 — 다시 부르면 기존 사진을 새 사진으로 교체한다. */

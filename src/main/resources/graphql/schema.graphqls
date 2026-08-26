@@ -19,7 +19,7 @@
 #   / REGION_NOT_FOUND / MEMBER_NOT_FOUND / INVALID_INVITE_CODE / IMAGE_NOT_UPLOADED
 #   / INVITE_CODE_CONFLICT / ALREADY_JOINED_PARTY / PARTY_FULL / CANNOT_REMOVE_OWNER
 #   / OWNER_CANNOT_LEAVE / RATE_LIMITED / VALIDATION_ERROR
-#   / TRIP_RECORD_NOT_FOUND
+#   / TRIP_RECORD_NOT_FOUND / REGION_HAS_INCOMPLETE_TRIP
 #
 # [여행 모델 — v2에서 바뀐 핵심]
 # - Trip = "팟의 한 번의 방문"(지역 + 기간 + 키워드). 팟 전체가 공유한다.
@@ -152,6 +152,12 @@ type Mutation {
     같은 지역을 다시 방문했다면 이 뮤테이션으로 새 Trip을 만든다 (기존 기록에 덮어쓰지 않는다).
     - 존재하지 않는 imageId면 IMAGE_NOT_FOUND, 존재하지 않는 regionCode면 REGION_NOT_FOUND.
     - startDate <= endDate 를 서버가 검증한다.
+
+    [정책] 같은 지역의 이전 방문이 전부 끝나야 다음 방문을 등록할 수 있다.
+    미완료 방문이 남아 있으면 REGION_HAS_INCOMPLETE_TRIP —
+    프론트는 "모두가 기록해야 다음 여행을 기록할 수 있어요!" 토스트를 띄운다.
+    "끝났다"의 기준은 현재 팟 멤버 전원이 기록을 남겼는지다. 기록하지 않고 나가거나 강퇴된 멤버는 세지 않아,
+    그 방문은 자동으로 완료로 넘어간다. 잠금은 같은 지역에만 걸린다 — 다른 지역은 자유롭게 등록할 수 있다.
     """
     createTrip(input: CreateTripInput!): Trip!
 

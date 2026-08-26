@@ -1,5 +1,6 @@
 package udumeoli.tripphoto.trip
 
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -110,7 +111,7 @@ class PartyMapGraphQlTest {
             .isEqualTo("KR")
             .path("partyMapOverview.country.keyword")
             .entity(String::class.java)
-            .isEqualTo("NATURE")
+            .isEqualTo("DESSERT")
             .path("partyMapOverview.country.regionCount")
             .entity(Int::class.java)
             .isEqualTo(5)
@@ -153,6 +154,52 @@ class PartyMapGraphQlTest {
     }
 
     @Test
+    fun `내가 못 채운 지역만 회색으로 내려온다`() {
+        val owner = createUser("방장")
+        val second = createUser("팟원2")
+        val third = createUser("팟원3")
+        val fourth = createUser("팟원4")
+        val partyId = createParty(owner, second, third, fourth)
+        seedWalkthrough(partyId, owner, second, third, fourth)
+
+        // 방장은 서울(11)만 안 올렸다. 강릉은 1·2차 모두 올려서 회색이 아니다.
+        graphQlTester(owner)
+            .document(OVERVIEW_DOCUMENT.format(partyId))
+            .execute()
+            .path("partyMapOverview.municipalities[?(@.regionCode == '11')].hasUnrecordedTrip")
+            .entityList(Boolean::class.java)
+            .containsExactly(true)
+            .path("partyMapOverview.municipalities[?(@.regionCode == '32030')].hasUnrecordedTrip")
+            .entityList(Boolean::class.java)
+            .containsExactly(false)
+            .path("partyMapOverview.country.hasUnrecordedTrip")
+            .entity(Boolean::class.java)
+            .isEqualTo(true)
+            .path("partyMapOverview.country.latestTripAt")
+            .entity(String::class.java)
+            .satisfies { assertThat(it).isNotBlank() }
+    }
+
+    @Test
+    fun `같은 지역을 두 번 갔는데 한 번만 올렸으면 그 지역은 회색이다`() {
+        val owner = createUser("방장")
+        val partyId = createParty(owner)
+        val first = saveTrip(partyId, "32030", TripKeyword.FOOD, "2026-03-01")
+        saveTrip(partyId, "32030", TripKeyword.FOOD, "2026-05-10")
+        saveRecords(first, owner)
+
+        graphQlTester(owner)
+            .document(OVERVIEW_DOCUMENT.format(partyId))
+            .execute()
+            .path("partyMapOverview.municipalities[0].hasUnrecordedTrip")
+            .entity(Boolean::class.java)
+            .isEqualTo(true)
+            .path("partyMapOverview.municipalities[0].visitCount")
+            .entity(Int::class.java)
+            .isEqualTo(2)
+    }
+
+    @Test
     fun `강퇴된 멤버의 기록은 recordedMemberCount에 포함되지 않는다`() {
         val owner = createUser("방장")
         val kicked = createUser("강퇴대상")
@@ -188,10 +235,10 @@ class PartyMapGraphQlTest {
     ) {
         val gangneungFirst = saveTrip(partyId, "32030", TripKeyword.HEALING, "2026-03-01")
         val gangneungSecond = saveTrip(partyId, "32030", TripKeyword.FOOD, "2026-05-10")
-        val donghae = saveTrip(partyId, "32040", TripKeyword.NATURE, "2026-06-02")
+        val donghae = saveTrip(partyId, "32040", TripKeyword.DESSERT, "2026-06-02")
         val yangyang = saveTrip(partyId, "32410", TripKeyword.ACTIVITY, "2026-07-20")
-        val seoul = saveTrip(partyId, "11", TripKeyword.CITY, "2026-07-25")
-        val jeju = saveTrip(partyId, "39010", TripKeyword.NATURE, "2026-08-01")
+        val seoul = saveTrip(partyId, "11", TripKeyword.PHOTO, "2026-07-25")
+        val jeju = saveTrip(partyId, "39010", TripKeyword.DESSERT, "2026-08-01")
 
         saveRecords(gangneungFirst, owner, second)
         saveRecords(gangneungSecond, owner)
@@ -264,9 +311,9 @@ class PartyMapGraphQlTest {
             query {
               partyMapOverview(partyId: "%s") {
                 memberCount
-                country { regionCode keyword regionCount visitCount recordedMemberCount }
-                provinces { regionCode keyword regionCount visitCount recordedMemberCount }
-                municipalities { regionCode keyword regionCount visitCount recordedMemberCount }
+                country { regionCode keyword regionCount visitCount recordedMemberCount hasUnrecordedTrip latestTripAt }
+                provinces { regionCode keyword regionCount visitCount recordedMemberCount hasUnrecordedTrip }
+                municipalities { regionCode keyword regionCount visitCount recordedMemberCount hasUnrecordedTrip }
               }
             }
             """.trimIndent()

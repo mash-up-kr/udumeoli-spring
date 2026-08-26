@@ -44,6 +44,6 @@ class PartyMapQueryService(
                     .mapValues { (_, records) -> records.map { it.serviceUserId }.toSet() }
             }
 
-        return aggregate(trips, memberIdsByTripId, currentMemberIds)
+        return aggregate(trips, memberIdsByTripId, currentMemberIds, currentUserId)
     }
 }

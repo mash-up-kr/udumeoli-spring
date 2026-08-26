@@ -42,6 +42,13 @@ class PartyGraphQlController(
     ): PartyPayload = partyCommandService.createParty(currentUserId, name)
 
     @MutationMapping
+    fun renameParty(
+        @LoginUser currentUserId: Long,
+        @Argument partyId: Long,
+        @Argument name: String,
+    ): PartyPayload = partyCommandService.renameParty(currentUserId, partyId, name)
+
+    @MutationMapping
     fun joinParty(
         @LoginUser currentUserId: Long,
         @Argument inviteCode: String,

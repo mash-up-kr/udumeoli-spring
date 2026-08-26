@@ -235,6 +235,76 @@ class PartyGraphQlTest {
             .verify()
     }
 
+    @Test
+    fun `팟원이 바꾼 팟 이름이 내 팟 목록에 바로 반영된다`() {
+        val owner = createUser("방장")
+        val inviteCode = createParty(owner, "옛이름")
+        val member = createUser("팟원")
+        joinParty(member, inviteCode)
+
+        val partyId =
+            graphQlTester(member)
+                .document("{ myParties { id } }")
+                .execute()
+                .path("myParties[0].id")
+                .entity(String::class.java)
+                .get()
+
+        graphQlTester(member)
+            .document(
+                """
+                mutation {
+                  renameParty(partyId: "$partyId", name: "새이름") {
+                    name
+                  }
+                }
+                """.trimIndent(),
+            ).execute()
+            .path("renameParty.name")
+            .entity(String::class.java)
+            .isEqualTo("새이름")
+
+        graphQlTester(member)
+            .document("{ myParties { name } }")
+            .execute()
+            .path("myParties[*].name")
+            .entityList(String::class.java)
+            .containsExactly("새이름")
+    }
+
+    @Test
+    fun `내 팟 목록은 가장 최근에 참여한 팟이 맨 위에 온다`() {
+        val owner = createUser("방장")
+        val member = createUser("팟원")
+        joinParty(member, createParty(owner, "먼저 들어간 팟"))
+        joinParty(member, createParty(owner, "나중에 들어간 팟"))
+
+        graphQlTester(member)
+            .document("{ myParties { name } }")
+            .execute()
+            .path("myParties[*].name")
+            .entityList(String::class.java)
+            .containsExactly("나중에 들어간 팟", "먼저 들어간 팟")
+    }
+
+    private fun joinParty(
+        user: ServiceUser,
+        inviteCode: String,
+    ) {
+        graphQlTester(user)
+            .document(
+                """
+                mutation {
+                  joinParty(inviteCode: "$inviteCode") {
+                    id
+                  }
+                }
+                """.trimIndent(),
+            ).execute()
+            .path("joinParty.id")
+            .hasValue()
+    }
+
     private fun createParty(
         owner: ServiceUser,
         name: String,

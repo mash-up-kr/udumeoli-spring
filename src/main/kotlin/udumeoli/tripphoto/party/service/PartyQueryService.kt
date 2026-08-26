@@ -19,10 +19,15 @@ class PartyQueryService(
     private val partyMemberRepository: PartyMemberRepository,
     private val userService: UserService,
 ) {
+    /** 마이페이지 "내 팟" 목록. 가장 최근에 참여한 팟이 맨 위에 온다. */
     @Transactional(readOnly = true)
     fun myParties(currentUserId: Long): List<PartyPayload> {
         userService.getCurrentUser(currentUserId)
-        val partyIds = partyMemberRepository.findAllByServiceUserId(currentUserId).map { it.partyId }
+        val partyIds =
+            partyMemberRepository
+                .findAllByServiceUserId(currentUserId)
+                .sortedWith(RECENT_JOIN_FIRST)
+                .map { it.partyId }
         if (partyIds.isEmpty()) {
             return emptyList()
         }
@@ -95,5 +100,11 @@ class PartyQueryService(
         private val JOIN_ORDER: Comparator<PartyMember> =
             compareBy<PartyMember> { it.createdAt ?: LocalDateTime.MIN }
                 .thenBy { it.id ?: Long.MAX_VALUE }
+
+        /**
+         * [JOIN_ORDER]를 뒤집은 순서 — 내가 나중에 들어간 팟일수록 앞에 온다.
+         * 같은 시각에 참여한 팟은 나중에 저장된 멤버십(큰 id)을 앞에 둬 응답을 결정론적으로 만든다.
+         */
+        private val RECENT_JOIN_FIRST: Comparator<PartyMember> = JOIN_ORDER.reversed()
     }
 }

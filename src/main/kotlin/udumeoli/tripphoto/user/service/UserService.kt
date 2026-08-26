@@ -7,6 +7,7 @@ import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
 import udumeoli.tripphoto.image.service.ImageService
 import udumeoli.tripphoto.user.dto.UserPayload
 import udumeoli.tripphoto.user.dto.toPayload
+import udumeoli.tripphoto.user.entity.Nickname
 import udumeoli.tripphoto.user.entity.ServiceUser
 import udumeoli.tripphoto.user.repository.ServiceUserRepository
 
@@ -33,11 +34,13 @@ class UserService(
         nickname: String,
         profileImage: Long?,
     ): UserPayload {
-        validateNonEmpty(nickname, "닉네임을 입력해주세요.")
+        val normalizedNickname =
+            Nickname.normalizeOrNull(nickname)
+                ?: throw GraphQlDomainException(GraphQlErrorCode.VALIDATION_ERROR, Nickname.RULE_MESSAGE)
         // TODO: 업로드한 프로필 사진(프리셋 아님)으로 바꾼 경우 썸네일 생성 요청 필요
         val user = getCurrentUser(currentUserId)
         return serviceUserRepository
-            .save(user.updateProfile(nickname, profileImage))
+            .save(user.updateProfile(normalizedNickname, profileImage))
             .toPayload()
     }
 
@@ -49,13 +52,4 @@ class UserService(
 
     @Transactional(readOnly = true)
     fun findAllById(userIds: Iterable<Long>): List<ServiceUser> = serviceUserRepository.findAllById(userIds).toList()
-
-    private fun validateNonEmpty(
-        value: String,
-        message: String,
-    ) {
-        if (value.isEmpty()) {
-            throw GraphQlDomainException(GraphQlErrorCode.VALIDATION_ERROR, message)
-        }
-    }
 }

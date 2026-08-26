@@ -12,17 +12,21 @@ import udumeoli.tripphoto.trip.entity.TripKeyword
  * 행정구역 코드가 이미 접두사 계층이라(32030 → 32) take(2) 한 줄로 시·군 → 시·도 롤업이 된다.
  * 서울 같은 2자리 코드는 잘라도 그대로라 예외 처리가 없다.
  * memberCount는 [currentMemberIds]의 크기에서 그대로 파생된다 — "n/N"의 N과 n의 모수가 항상 같은 집합이다.
+ *
+ * [currentUserId]는 칸을 회색으로 칠할지 가르는 데만 쓴다. 지도는 "내가 이 칸을 다 기록했는가"로
+ * 스티커 노출을 결정하므로, 남이 몇 명 기록했는지(recordedMemberCount)와는 축이 다른 값이 하나 더 필요하다.
  */
 internal fun aggregate(
     trips: List<Trip>,
     memberIdsByTripId: Map<Long, Set<Long>>,
     currentMemberIds: Set<Long>,
+    currentUserId: Long,
 ): PartyMapOverviewPayload =
     PartyMapOverviewPayload(
         memberCount = currentMemberIds.size,
-        country = cellsBy(trips, memberIdsByTripId, currentMemberIds) { COUNTRY_CODE }.singleOrNull(),
-        provinces = cellsBy(trips, memberIdsByTripId, currentMemberIds) { it.take(2) },
-        municipalities = cellsBy(trips, memberIdsByTripId, currentMemberIds) { it },
+        country = cells(trips, memberIdsByTripId, currentMemberIds, currentUserId) { COUNTRY_CODE }.singleOrNull(),
+        provinces = cells(trips, memberIdsByTripId, currentMemberIds, currentUserId) { it.take(2) },
+        municipalities = cells(trips, memberIdsByTripId, currentMemberIds, currentUserId) { it },
     )
 
 /** 0단계 칸의 코드. 프론트는 전국 폴리곤 하나에 이 코드를 매칭한다. */
@@ -32,10 +36,11 @@ private const val COUNTRY_CODE = "KR"
  * [groupKey]로 여행을 묶어 칸을 만든다. 여행이 없으면 빈 목록이라 country가 자연히 null이 된다.
  * 순서는 regionCode 오름차순 — 프론트는 Map으로 인덱싱해 순서에 의존하지 않지만, 응답을 결정론적으로 두려는 것이다.
  */
-private fun cellsBy(
+private fun cells(
     trips: List<Trip>,
     memberIdsByTripId: Map<Long, Set<Long>>,
     currentMemberIds: Set<Long>,
+    currentUserId: Long,
     groupKey: (String) -> String,
 ): List<MapCellPayload> =
     trips
@@ -53,6 +58,11 @@ private fun cellsBy(
                         .toSet()
                         .intersect(currentMemberIds)
                         .size,
+                // 이 칸에 내가 아직 안 올린 여행이 하나라도 있으면 회색이다.
+                // 강릉 1차를 내가 기록했더라도 2차를 안 올렸으면 강릉은 다시 회색으로 돌아간다.
+                hasUnrecordedTrip =
+                    cellTrips.any { currentUserId !in memberIdsByTripId[requireNotNull(it.id)].orEmpty() },
+                latestTripAt = cellTrips.maxOf { requireNotNull(it.auditMetadata.createdAt) },
             )
         }.sortedBy { it.regionCode }
 

@@ -17,6 +17,9 @@ import udumeoli.tripphoto.trip.repository.TripRecordRepository
 import udumeoli.tripphoto.trip.repository.TripRepository
 import udumeoli.tripphoto.user.service.UserService
 
+// 팟에 걸 수 있는 명령(생성·이름변경·초대코드·나가기·삭제·강퇴)을 한곳에 모아 둔 결과라 함수가 많다.
+// 쪼개려면 팟 도메인 전체를 다시 나눠야 해서, 여기서는 임계값만 예외로 둔다.
+@Suppress("TooManyFunctions")
 @Service
 class PartyCommandService(
     private val partyRepository: PartyRepository,
@@ -54,6 +57,31 @@ class PartyCommandService(
         )
 
         return partyQueryService.toPayload(party)
+    }
+
+    /**
+     * 팟 이름 변경. 이름 규칙은 생성 때와 같다 — 1자 이상이면 되고 공백·중복·특수기호를 가리지 않는다.
+     *
+     * [정책] owner 전용이 아니라 멤버 누구나 바꿀 수 있다. 기획이 팟장에게만 열어둔 건
+     * 팟 삭제·강퇴·초대코드 재발급이고, 이름 수정에는 그런 단서가 없다.
+     *
+     * 저장에 [saveParty]를 쓰지 않는 건 이름에는 유니크 제약이 없어서다 —
+     * 여기서 DuplicateKeyException이 날 일이 없는데 초대코드 충돌로 둔갑시킬 이유가 없다.
+     */
+    @Transactional
+    fun renameParty(
+        currentUserId: Long,
+        partyId: Long,
+        name: String,
+    ): PartyPayload {
+        val party =
+            partyRepository.findById(partyId).orElseThrow {
+                GraphQlDomainException(GraphQlErrorCode.PARTY_NOT_FOUND, "여행팟을 찾을 수 없습니다.")
+            }
+        partyQueryService.requireMember(partyId, currentUserId)
+        validateNonEmpty(name, "여행팟 이름을 입력해주세요.")
+
+        return partyQueryService.toPayload(partyRepository.save(party.copy(partyName = name)))
     }
 
     /** 초대코드 재발급 (owner 전용). 기존 코드는 이 시점부터 무효다. */

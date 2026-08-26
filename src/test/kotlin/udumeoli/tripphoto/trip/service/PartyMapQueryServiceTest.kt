@@ -9,6 +9,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.catchThrowable
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import udumeoli.tripphoto.common.entity.AuditMetadata
 import udumeoli.tripphoto.common.graphql.GraphQlDomainException
 import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
 import udumeoli.tripphoto.party.service.PartyQueryService
@@ -18,6 +19,7 @@ import udumeoli.tripphoto.trip.entity.TripRecord
 import udumeoli.tripphoto.trip.repository.TripRecordRepository
 import udumeoli.tripphoto.trip.repository.TripRepository
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 class PartyMapQueryServiceTest {
     private lateinit var tripRepository: TripRepository
@@ -73,7 +75,7 @@ class PartyMapQueryServiceTest {
         val trips =
             listOf(
                 trip(id = 1, regionCode = "32030", keyword = TripKeyword.FOOD),
-                trip(id = 2, regionCode = "32040", keyword = TripKeyword.NATURE),
+                trip(id = 2, regionCode = "32040", keyword = TripKeyword.DESSERT),
             )
         every { partyQueryService.requireMember(7L, 101L) } just Runs
         every { tripRepository.findAllByPartyId(7L) } returns trips
@@ -93,6 +95,24 @@ class PartyMapQueryServiceTest {
         verify(exactly = 1) { tripRepository.findAllByPartyId(7L) }
         verify(exactly = 1) { tripRecordRepository.findAllByTripIdIn(any()) }
         verify(exactly = 1) { partyQueryService.memberUserIdsInJoinOrder(7L) }
+    }
+
+    @Test
+    fun `회색 여부는 요청한 사람 기준으로 계산된다`() {
+        val trips = listOf(trip(id = 1, regionCode = "32030", keyword = TripKeyword.FOOD))
+        every { tripRepository.findAllByPartyId(7L) } returns trips
+        every { partyQueryService.memberUserIdsInJoinOrder(7L) } returns listOf(101L, 102L)
+        every { tripRecordRepository.findAllByTripIdIn(listOf(1L)) } returns
+            listOf(TripRecord(id = 11, tripId = 1L, serviceUserId = 101L))
+
+        every { partyQueryService.requireMember(7L, 101L) } just Runs
+        every { partyQueryService.requireMember(7L, 102L) } just Runs
+
+        val recorder = partyMapQueryService.mapOverview(currentUserId = 101L, partyId = 7L)
+        val bystander = partyMapQueryService.mapOverview(currentUserId = 102L, partyId = 7L)
+
+        assertThat(recorder.municipalities.single().hasUnrecordedTrip).isFalse()
+        assertThat(bystander.municipalities.single().hasUnrecordedTrip).isTrue()
     }
 
     @Test
@@ -127,4 +147,5 @@ private fun trip(
         keyword = keyword,
         startDate = LocalDate.of(2026, 3, 1),
         endDate = LocalDate.of(2026, 3, 1),
+        auditMetadata = AuditMetadata(createdAt = LocalDateTime.of(2026, 3, 1, 0, 0).plusMinutes(id)),
     )

@@ -9,6 +9,7 @@ import io.mockk.verifyOrder
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import udumeoli.tripphoto.auth.repository.RefreshTokenRepository
 import udumeoli.tripphoto.image.service.ImageService
 import udumeoli.tripphoto.party.entity.PartyMember
 import udumeoli.tripphoto.party.repository.PartyMemberRepository
@@ -25,6 +26,7 @@ class AccountWithdrawalServiceTest {
     private lateinit var socialAccountRepository: SocialAccountRepository
     private lateinit var serviceUserRepository: ServiceUserRepository
     private lateinit var imageService: ImageService
+    private lateinit var refreshTokenRepository: RefreshTokenRepository
     private lateinit var accountWithdrawalService: AccountWithdrawalService
 
     @BeforeEach
@@ -35,6 +37,7 @@ class AccountWithdrawalServiceTest {
         socialAccountRepository = mockk()
         serviceUserRepository = mockk()
         imageService = mockk()
+        refreshTokenRepository = mockk()
 
         accountWithdrawalService =
             AccountWithdrawalService(
@@ -44,6 +47,7 @@ class AccountWithdrawalServiceTest {
                 socialAccountRepository = socialAccountRepository,
                 serviceUserRepository = serviceUserRepository,
                 imageService = imageService,
+                refreshTokenRepository = refreshTokenRepository,
             )
     }
 
@@ -65,6 +69,7 @@ class AccountWithdrawalServiceTest {
         every { socialAccountRepository.findAllByServiceUserId(1L) } returns socialAccounts
         every { socialAccountRepository.deleteAll(socialAccounts) } just Runs
         every { serviceUserRepository.delete(user) } just Runs
+        every { refreshTokenRepository.deleteAllByServiceUserId(1L) } just Runs
 
         val result = accountWithdrawalService.withdraw(currentUserId = 1)
 
@@ -88,6 +93,7 @@ class AccountWithdrawalServiceTest {
         every { socialAccountRepository.findAllByServiceUserId(1L) } returns emptyList()
         every { socialAccountRepository.deleteAll(emptyList<SocialAccount>()) } just Runs
         every { serviceUserRepository.delete(user) } just Runs
+        every { refreshTokenRepository.deleteAllByServiceUserId(1L) } just Runs
 
         val result = accountWithdrawalService.withdraw(currentUserId = 1)
 

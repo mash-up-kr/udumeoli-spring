@@ -23,6 +23,8 @@ services:
       STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
       STORAGE_PUBLIC_BASE_URL: ${STORAGE_PUBLIC_BASE_URL}
       THUMBNAIL_SERVER_URL: ${THUMBNAIL_SERVER_URL}
+      KMS_MASTER_KEY: ${KMS_MASTER_KEY}
+      API_BASE_URL: ${API_BASE_URL}
       # ATP의 APP_USER 스키마에는 삭제할 수 없는 고아 identity 시퀀스(ISEQ$$_...)가 남아 있다.
       # 소유 테이블이 이미 드롭돼 ORA-32794(cannot drop a system-generated sequence)로 제거가 막히는데,
       # 이것들 때문에 Flyway가 스키마를 영구히 "비어있지 않음"으로 판정해 V1을 시작조차 못 한다.

@@ -8,6 +8,7 @@ services:
       - "127.0.0.1:8080:8080"
     environment:
       # ★ 이게 빠지면 Oracle(dev) 설정이 로드 안 되고 H2로 폴백됨
+      TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: dev
       # 비밀번호는 같은 폴더의 .env 에서 주입 (git 에는 커밋 금지)
       DB_PASSWORD: ${DB_PASSWORD}

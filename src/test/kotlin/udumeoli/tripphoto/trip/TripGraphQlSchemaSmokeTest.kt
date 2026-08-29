@@ -65,8 +65,9 @@ class TripGraphQlSchemaSmokeTest {
             .`when`(storageAdapter.publicUrl(anyString()))
             .thenReturn("https://cdn.example.com/original/a.jpg")
         Mockito
-            .`when`(storageAdapter.createUploadUrl(anyString(), anyString(), org.mockito.Mockito.any(ByteArray::class.java) ?: ByteArray(0)))
-            .thenReturn("https://upload.example.com/a.jpg?sig=1")
+            .`when`(
+                storageAdapter.createUploadUrl(anyString(), anyString(), org.mockito.Mockito.any(ByteArray::class.java) ?: ByteArray(0)),
+            ).thenReturn("https://upload.example.com/a.jpg?sig=1")
     }
 
     @AfterEach

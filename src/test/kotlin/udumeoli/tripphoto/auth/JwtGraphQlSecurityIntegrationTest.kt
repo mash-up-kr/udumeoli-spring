@@ -70,7 +70,7 @@ class JwtGraphQlSecurityIntegrationTest {
                 content = """{"query":"{ me { nickname } }"}"""
             }.andExpect {
                 status { isOk() }
-                jsonPath("$.errors[0].extensions.classification") { value("UNAUTHENTICATED") }
+                jsonPath("$.errors[0].extensions.classification") { value("UNAUTHORIZED") }
             }
     }
 }

@@ -17,11 +17,13 @@ data class ImagePayload(
 fun Image.toPayload(
     uploader: ServiceUser?,
     apiBaseUrl: String,
-): ImagePayload =
-    ImagePayload(
+): ImagePayload {
+    val isLegacy = encryptedKey == null
+    return ImagePayload(
         id = requireNotNull(id),
-        originalUrl = "${apiBaseUrl.trimEnd('/')}/api/images/$id",
-        thumbnailUrl = "${apiBaseUrl.trimEnd('/')}/api/images/$id/thumbnail",
+        originalUrl = if (isLegacy) originalUrl else "${apiBaseUrl.trimEnd('/')}/api/images/$id",
+        thumbnailUrl = if (isLegacy) thumbnailUrl else "${apiBaseUrl.trimEnd('/')}/api/images/$id/thumbnail",
         uploader = uploader?.toPayload(),
         createdAt = requireNotNull(createdAt),
     )
+}

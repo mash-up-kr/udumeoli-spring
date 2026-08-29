@@ -368,6 +368,14 @@ type ImageUploadTarget {
     imageId: ID!
     "이 URL로 PUT 업로드. 만료 시간 존재 (협의 중)."
     uploadUrl: String!
+    "SSE-C 암호화를 위해 클라이언트가 PUT 요청 시 반드시 포함해야 하는 HTTP 헤더들"
+    encryptionHeaders: [HttpHeader!]!
+}
+
+"HTTP 헤더 키-값 쌍"
+type HttpHeader {
+    key: String!
+    value: String!
 }
 
 "기록에 붙일 사진 1장."

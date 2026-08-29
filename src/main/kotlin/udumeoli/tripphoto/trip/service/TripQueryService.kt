@@ -31,6 +31,7 @@ class TripQueryService(
     private val tripRecordReader: TripRecordReader,
     private val userService: UserService,
     private val partyQueryService: PartyQueryService,
+    @org.springframework.beans.factory.annotation.Value("\${app.api-base-url}") private val apiBaseUrl: String,
 ) {
     @Transactional(readOnly = true)
     fun trips(
@@ -87,7 +88,7 @@ class TripQueryService(
                 VisitedRegionPayload(
                     regionCode = regionCode,
                     visitCount = regionTrips.size,
-                    images = images.take(STACK_IMAGE_LIMIT).map { it.toPayloadWith(usersById) },
+                    images = images.take(STACK_IMAGE_LIMIT).map { it.toPayloadWith(usersById, apiBaseUrl) },
                     totalImageCount = images.size,
                     hasUnrecordedTrip = regionTrips.ids().any { it !in myTripIds },
                 )
@@ -166,6 +167,7 @@ class TripQueryService(
                     tripId = tripId,
                     bundle = bundle,
                     usersById = usersById,
+                    apiBaseUrl = apiBaseUrl,
                 )
 
             TripPayload(
@@ -189,12 +191,14 @@ class TripQueryService(
  * 여행 1건의 records — 저장된 기록만이 아니라 **팟 멤버 전원**으로 채운다.
  * 아직 안 올린 멤버는 recorded=false 인 빈 행이 되고, 순서는 "나 최상단 → 팟 가입 순서"다.
  */
+@Suppress("LongParameterList")
 private fun buildRecords(
     currentUserId: Long,
     memberUserIds: List<Long>,
     tripId: Long,
     bundle: TripRecordBundle,
     usersById: Map<Long, ServiceUser>,
+    apiBaseUrl: String,
 ): List<TripRecordPayload> {
     val recordsByUserId = bundle.recordsOf(tripId).associateBy { it.serviceUserId }
     // 팟을 떠난 뒤에도 기록은 남는다. 사진이 조용히 사라지지 않도록 현재 멤버 뒤에 붙인다.
@@ -213,7 +217,7 @@ private fun buildRecords(
                 member = member.toPayload(),
                 recorded = record != null,
                 comment = record?.comment,
-                image = image?.toPayloadWith(usersById),
+                image = image?.toPayloadWith(usersById, apiBaseUrl),
             )
         }
 }
@@ -243,4 +247,7 @@ private fun visitSequences(trips: List<Trip>): Map<Long, Int> =
 
 private fun List<Trip>.ids(): List<Long> = map { requireNotNull(it.id) }
 
-private fun Image.toPayloadWith(usersById: Map<Long, ServiceUser>) = toPayload(uploaderId?.let(usersById::get))
+private fun Image.toPayloadWith(
+    usersById: Map<Long, ServiceUser>,
+    apiBaseUrl: String,
+) = toPayload(uploaderId?.let(usersById::get), apiBaseUrl)

@@ -70,3 +70,7 @@ auth:
     - http://localhost:3000
     - https://www.pinnned.co.kr
 
+app:
+  security:
+    kms-master-key: "${KMS_MASTER_KEY:12345678901234567890123456789012}"
+  api-base-url: "${API_BASE_URL:http://localhost:8080}"

@@ -20,6 +20,8 @@ data class Image(
     val thumbnailUrl: String? = null,
     @Column("uploader_id")
     val uploaderId: Long? = null,
+    @Column("encrypted_key")
+    val encryptedKey: String? = null,
     @CreatedDate
     @Column("created_at")
     val createdAt: LocalDateTime? = null,

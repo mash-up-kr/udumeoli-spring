@@ -15,6 +15,7 @@ import udumeoli.tripphoto.user.repository.ServiceUserRepository
 class UserService(
     private val serviceUserRepository: ServiceUserRepository,
     private val imageService: ImageService,
+    @org.springframework.beans.factory.annotation.Value("\${app.api-base-url}") private val apiBaseUrl: String,
 ) {
     @Transactional(readOnly = true)
     fun me(currentUserId: Long): UserPayload {
@@ -24,7 +25,8 @@ class UserService(
 
     private fun resolveProfileImageUrl(profileImage: Long): String? {
         if (ServiceUser.isPresetProfileImage(profileImage)) return null
-        return imageService.findImageOrNull(profileImage)?.let { it.thumbnailUrl ?: it.originalUrl }
+        // 썸네일/원본 여부에 상관없이 브라우저는 무조건 프록시를 통과해야 이미지를 스트리밍 받을 수 있습니다.
+        return imageService.findImageOrNull(profileImage)?.let { "${apiBaseUrl.trimEnd('/')}/api/images/${it.id}" }
     }
 
     @Suppress("ForbiddenComment")

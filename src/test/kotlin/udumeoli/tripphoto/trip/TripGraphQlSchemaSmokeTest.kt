@@ -63,7 +63,7 @@ class TripGraphQlSchemaSmokeTest {
             .`when`(storageAdapter.publicUrl(anyString()))
             .thenReturn("https://cdn.example.com/original/a.jpg")
         Mockito
-            .`when`(storageAdapter.createUploadUrl(anyString(), anyString()))
+            .`when`(storageAdapter.createUploadUrl(anyString(), anyString(), org.mockito.Mockito.any()))
             .thenReturn("https://upload.example.com/a.jpg?sig=1")
     }
 
@@ -504,9 +504,7 @@ class TripGraphQlSchemaSmokeTest {
                 ).id,
         )
 
-    private fun createUser(nickname: String): ServiceUser {
-        return serviceUserRepository.save(ServiceUser(nickname = nickname, profileImage = 1L))
-    }
+    private fun createUser(nickname: String): ServiceUser = serviceUserRepository.save(ServiceUser(nickname = nickname, profileImage = 1L))
 
     private fun graphQlTester(user: ServiceUser): ExecutionGraphQlServiceTester {
         val userId = requireNotNull(user.id)

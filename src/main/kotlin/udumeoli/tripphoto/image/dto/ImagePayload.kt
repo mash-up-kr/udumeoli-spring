@@ -14,11 +14,14 @@ data class ImagePayload(
     val createdAt: LocalDateTime,
 )
 
-fun Image.toPayload(uploader: ServiceUser?): ImagePayload =
+fun Image.toPayload(
+    uploader: ServiceUser?,
+    apiBaseUrl: String,
+): ImagePayload =
     ImagePayload(
         id = requireNotNull(id),
-        originalUrl = originalUrl,
-        thumbnailUrl = thumbnailUrl,
+        originalUrl = "${apiBaseUrl.trimEnd('/')}/api/images/$id",
+        thumbnailUrl = "${apiBaseUrl.trimEnd('/')}/api/images/$id/thumbnail",
         uploader = uploader?.toPayload(),
         createdAt = requireNotNull(createdAt),
     )

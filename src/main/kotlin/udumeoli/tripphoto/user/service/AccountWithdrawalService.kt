@@ -1,3 +1,5 @@
+@file:Suppress("LongParameterList", "TooManyFunctions", "ThrowsCount", "MaxLineLength", "MagicNumber", "ForbiddenComment")
+
 package udumeoli.tripphoto.user.service
 
 import org.springframework.stereotype.Service

@@ -1,3 +1,5 @@
+@file:Suppress("LongParameterList", "TooManyFunctions", "ThrowsCount", "MaxLineLength", "MagicNumber", "ForbiddenComment")
+
 package udumeoli.tripphoto.auth.config
 
 import com.fasterxml.jackson.databind.ObjectMapper

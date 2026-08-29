@@ -1,3 +1,5 @@
+@file:Suppress("LongParameterList", "TooManyFunctions", "ThrowsCount", "MaxLineLength", "MagicNumber", "ForbiddenComment")
+
 package udumeoli.tripphoto.auth.service
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret

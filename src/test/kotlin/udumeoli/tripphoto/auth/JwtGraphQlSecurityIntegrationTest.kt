@@ -69,8 +69,8 @@ class JwtGraphQlSecurityIntegrationTest {
                 contentType = MediaType.APPLICATION_JSON
                 content = """{"query":"{ me { nickname } }"}"""
             }.andExpect {
-                status { isUnauthorized() }
-                jsonPath("$.code") { value("UNAUTHENTICATED") }
+                status { isOk() }
+                jsonPath("$.errors[0].extensions.classification") { value("UNAUTHORIZED") }
             }
     }
 }

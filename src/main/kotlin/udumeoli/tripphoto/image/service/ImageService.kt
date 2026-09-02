@@ -17,6 +17,7 @@ class ImageService(
     private val imageRepository: ImageRepository,
     private val storageAdapter: S3StorageAdapter,
     private val thumbnailAdapter: HttpThumbnailAdapter,
+    private val kmsService: KmsService,
 ) {
     fun createUploadUrl(
         uploaderId: Long?,
@@ -29,17 +30,28 @@ class ImageService(
                     "허용되지 않는 contentType: $contentType (허용: ${ALLOWED_CONTENT_TYPES.keys.joinToString()})",
                 )
         val objectKey = "original/${UUID.randomUUID()}.$extension"
+
+        val dek = kmsService.generateDek()
+        val encryptedDek = kmsService.encryptDek(dek)
+
         val image =
             imageRepository.save(
                 Image(
                     objectKey = objectKey,
                     originalUrl = storageAdapter.publicUrl(objectKey),
                     uploaderId = uploaderId,
+                    encryptedKey = encryptedDek,
                 ),
             )
+
+        val ssec =
+            udumeoli.tripphoto.image.dto.SsecHeader
+                .fromDek(dek)
+
         return ImageUploadTarget(
             imageId = requireNotNull(image.id),
-            uploadUrl = storageAdapter.createUploadUrl(objectKey, contentType),
+            uploadUrl = storageAdapter.createUploadUrl(objectKey, contentType, dek),
+            encryptionHeaders = ssec.toHttpHeaders(),
         )
     }
 

@@ -14,15 +14,23 @@ class S3StorageAdapter(
     fun createUploadUrl(
         objectKey: String,
         contentType: String,
+        dek: ByteArray,
     ): String {
-        val putRequest =
+        val ssec =
+            udumeoli.tripphoto.image.dto.SsecHeader
+                .fromDek(dek)
+
+        val putRequest: software.amazon.awssdk.services.s3.model.PutObjectRequest =
             PutObjectRequest
                 .builder()
                 .bucket(properties.bucket)
                 .key(objectKey)
                 .contentType(contentType)
+                .sseCustomerAlgorithm(ssec.algorithm)
+                .sseCustomerKey(ssec.keyBase64)
+                .sseCustomerKeyMD5(ssec.keyMd5Base64)
                 .build()
-        val presignRequest =
+        val presignRequest: software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest =
             PutObjectPresignRequest
                 .builder()
                 .signatureDuration(properties.uploadUrlTtl)

@@ -24,7 +24,7 @@ class UserServiceTest {
     fun setUp() {
         serviceUserRepository = mockk()
         imageService = mockk()
-        userService = UserService(serviceUserRepository, imageService)
+        userService = UserService(serviceUserRepository, imageService, "http://localhost:8080")
     }
 
     @Test

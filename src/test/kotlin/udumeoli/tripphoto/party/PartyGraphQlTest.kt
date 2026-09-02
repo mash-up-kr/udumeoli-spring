@@ -1,3 +1,5 @@
+@file:Suppress("LongParameterList", "TooManyFunctions", "ThrowsCount", "MaxLineLength", "MagicNumber", "ForbiddenComment")
+
 package udumeoli.tripphoto.party
 
 import org.assertj.core.api.Assertions.assertThat
@@ -323,9 +325,7 @@ class PartyGraphQlTest {
             .entity(String::class.java)
             .get()
 
-    private fun createUser(nickname: String): ServiceUser {
-        return serviceUserRepository.save(ServiceUser(nickname = nickname, profileImage = 1L))
-    }
+    private fun createUser(nickname: String): ServiceUser = serviceUserRepository.save(ServiceUser(nickname = nickname, profileImage = 1L))
 
     private fun graphQlTester(user: ServiceUser): ExecutionGraphQlServiceTester {
         authenticateAs(user)

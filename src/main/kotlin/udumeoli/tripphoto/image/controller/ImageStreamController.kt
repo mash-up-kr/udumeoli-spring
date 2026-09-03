@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
-import udumeoli.tripphoto.auth.annotation.LoginUser
 import udumeoli.tripphoto.image.service.ImageService
 import java.net.URI
 import java.util.Base64
@@ -25,13 +24,11 @@ class ImageStreamController(
      */
     @GetMapping("/api/images/{objectKey}")
     fun redirectOriginal(
-        @LoginUser currentUserId: Long,
         @PathVariable objectKey: String,
     ): ResponseEntity<Void> = createRedirect(objectKey, "original")
 
     @GetMapping("/api/images/{objectKey}/thumbnail")
     fun redirectThumbnail(
-        @LoginUser currentUserId: Long,
         @PathVariable objectKey: String,
     ): ResponseEntity<Void> = createRedirect(objectKey, "thumb")
 

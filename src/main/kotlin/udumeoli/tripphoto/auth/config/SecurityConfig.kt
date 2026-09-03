@@ -60,6 +60,7 @@ class SecurityConfig {
                         "/graphiql/**",
                         "/h2-console/**",
                         "/error",
+                        "/api/images/**",
                     ).permitAll()
                     .anyRequest()
                     .authenticated()

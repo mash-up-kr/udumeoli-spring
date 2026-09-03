@@ -22,15 +22,15 @@ class ImageStreamController(
      * 클라이언트(브라우저)에서 <img src="/api/images/{objectKey}"> 로 호출할 때
      * 서버는 권한을 체크한 뒤, Go 썸네일 서버(Nginx 경유)로 302 Redirect 시킵니다.
      */
-    @GetMapping("/api/images/{objectKey}")
+    @GetMapping("/api/images/original/{fileName}")
     fun redirectOriginal(
-        @PathVariable objectKey: String,
-    ): ResponseEntity<Void> = createRedirect(objectKey, "original")
+        @PathVariable fileName: String,
+    ): ResponseEntity<Void> = createRedirect("original/$fileName", "original")
 
-    @GetMapping("/api/images/{objectKey}/thumbnail")
+    @GetMapping("/api/images/original/{fileName}/thumbnail")
     fun redirectThumbnail(
-        @PathVariable objectKey: String,
-    ): ResponseEntity<Void> = createRedirect(objectKey, "thumb")
+        @PathVariable fileName: String,
+    ): ResponseEntity<Void> = createRedirect("original/$fileName", "thumb")
 
     private fun createRedirect(
         objectKey: String,

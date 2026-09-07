@@ -42,16 +42,43 @@ class MapCellAggregationTest {
     }
 
     @Test
-    fun `개수와 시작일까지 같으면 나중에 등록된 여행의 키워드를 쓴다`() {
+    fun `개수가 같으면 이름이 가나다순으로 앞선 키워드를 쓴다`() {
+        // 등록 순서(id)나 날짜가 아니라 이름 순이다 — 나중에 등록된 '사진'이 아니라 '디저트'가 뽑힌다.
         val trips =
             listOf(
-                trip(id = 9, regionCode = "32030", keyword = TripKeyword.DESSERT, startDate = "2026-03-01"),
-                trip(id = 4, regionCode = "32030", keyword = TripKeyword.PHOTO, startDate = "2026-03-01"),
+                trip(id = 4, regionCode = "32030", keyword = TripKeyword.DESSERT, startDate = "2026-03-01"),
+                trip(id = 9, regionCode = "32030", keyword = TripKeyword.PHOTO, startDate = "2026-05-10"),
             )
 
         val overview = overviewOf(trips)
 
         assertThat(overview.municipalities.single().keyword).isEqualTo(TripKeyword.DESSERT)
+    }
+
+    @Test
+    fun `가나다순 비교는 선언 순서가 아니라 한글 이름을 따른다`() {
+        // 선언 순서로는 FOOD(맛집)가 ACTIVITY(액티비티)보다 앞이지만, 가나다순으로는 '맛집' < '액티비티'다.
+        // 힐링(ㅎ)이 가장 뒤라 세 개가 동률이어도 맛집이 뽑힌다.
+        val trips =
+            listOf(
+                trip(id = 1, regionCode = "32030", keyword = TripKeyword.HEALING, startDate = "2026-03-01"),
+                trip(id = 2, regionCode = "32030", keyword = TripKeyword.ACTIVITY, startDate = "2026-03-02"),
+                trip(id = 3, regionCode = "32030", keyword = TripKeyword.FOOD, startDate = "2026-03-03"),
+            )
+
+        assertThat(overviewOf(trips).municipalities.single().keyword).isEqualTo(TripKeyword.FOOD)
+    }
+
+    @Test
+    fun `개수가 많은 키워드가 가나다순보다 우선한다`() {
+        val trips =
+            listOf(
+                trip(id = 1, regionCode = "32030", keyword = TripKeyword.HEALING, startDate = "2026-03-01"),
+                trip(id = 2, regionCode = "32030", keyword = TripKeyword.HEALING, startDate = "2026-03-02"),
+                trip(id = 3, regionCode = "32030", keyword = TripKeyword.DESSERT, startDate = "2026-03-03"),
+            )
+
+        assertThat(overviewOf(trips).municipalities.single().keyword).isEqualTo(TripKeyword.HEALING)
     }
 
     @Test
@@ -61,7 +88,8 @@ class MapCellAggregationTest {
         val gangwon = overview.provinces.single { it.regionCode == "32" }
         assertThat(gangwon.regionCount).isEqualTo(3)
         assertThat(gangwon.visitCount).isEqualTo(4)
-        assertThat(gangwon.keyword).isEqualTo(TripKeyword.ACTIVITY)
+        // 힐링·맛집·디저트·액티비티가 1개씩 — 동률이라 가나다순 첫 번째인 디저트가 대표다.
+        assertThat(gangwon.keyword).isEqualTo(TripKeyword.DESSERT)
     }
 
     @Test
@@ -199,7 +227,7 @@ class MapCellAggregationTest {
         assertThat(overview.provinces)
             .containsExactly(
                 cell("11", TripKeyword.PHOTO, regions = 1, visits = 1, recorded = 1, unrecorded = true, latest = 5),
-                cell("32", TripKeyword.ACTIVITY, regions = 3, visits = 4, recorded = 3, latest = 4),
+                cell("32", TripKeyword.DESSERT, regions = 3, visits = 4, recorded = 3, latest = 4),
                 cell("39", TripKeyword.DESSERT, regions = 1, visits = 1, recorded = 2, latest = 6),
             )
         assertThat(overview.country)

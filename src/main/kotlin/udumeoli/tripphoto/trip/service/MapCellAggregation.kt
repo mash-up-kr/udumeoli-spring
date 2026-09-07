@@ -66,13 +66,16 @@ private fun cells(
             )
         }.sortedBy { it.regionCode }
 
-/** 최빈 → 동률이면 최근 startDate → 그래도 동률이면 큰 id. 마지막 기준은 응답을 결정론적으로 두기 위한 것이다. */
+/**
+ * 최빈 → 동률이면 이름 가나다순으로 가장 앞선 키워드.
+ *
+ * 여행이 아니라 키워드를 줄 세운다 — 후보가 키워드 집합이라 같은 키워드가 두 번 겹칠 일이 없고,
+ * 그래서 두 기준만으로 순위가 완전히 갈린다. 결정론을 위한 id 같은 최후 기준이 따로 필요 없다.
+ */
 private fun representativeKeyword(trips: List<Trip>): TripKeyword {
     val countByKeyword = trips.groupingBy { it.keyword }.eachCount()
-    return trips
-        .maxWith(
-            compareBy<Trip> { countByKeyword.getValue(it.keyword) }
-                .thenBy { it.startDate }
-                .thenBy { it.id ?: 0L },
-        ).keyword
+    return countByKeyword.keys.minWith(
+        compareByDescending<TripKeyword> { countByKeyword.getValue(it) }
+            .thenBy { it.koreanName },
+    )
 }

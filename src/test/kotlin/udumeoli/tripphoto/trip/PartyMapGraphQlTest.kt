@@ -124,9 +124,10 @@ class PartyMapGraphQlTest {
             .path("partyMapOverview.provinces[*].regionCode")
             .entityList(String::class.java)
             .containsExactly("11", "32", "39")
+            // 강원에 묶인 네 여행의 키워드가 1개씩이라, 동률을 가나다순으로 갈라 디저트가 대표가 된다.
             .path("partyMapOverview.provinces[1].keyword")
             .entity(String::class.java)
-            .isEqualTo("ACTIVITY")
+            .isEqualTo("DESSERT")
             .path("partyMapOverview.provinces[1].regionCount")
             .entity(Int::class.java)
             .isEqualTo(3)

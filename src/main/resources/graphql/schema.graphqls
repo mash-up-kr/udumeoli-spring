@@ -70,12 +70,18 @@ type Query {
     """
     partyTrips(partyId: ID!): [Trip!]!
 
-    "특정 지역의 여행만 — 정렬 기준은 partyTrips와 동일."
+    """
+    특정 지역의 여행만 — 정렬 기준은 partyTrips와 동일.
+    지역 상세 화면(멤버 카드 그리드 + 키워드 칩)이 쓰는 조회다.
+    화면이 필요로 하는 집계는 이 응답에서 파생된다 —
+    "n/N명 기록 완료"는 records의 recorded 수, 키워드 칩은 keyword별 recorded 수를 세면 된다.
+    """
     partyTripsInRegion(partyId: ID!, regionCode: String!): [Trip!]!
 
     """
-    팟이 방문한 지역 목록 — 여행 이미지 상세 보기 진입 화면.
-    지역마다 방문 횟수·대표 사진·내 미기록 여부가 함께 온다.
+    팟이 방문한 지역 목록 — 여행 앨범 진입 화면.
+    지역마다 "n/N명" 기록 인원과 멤버별 자리(slots), 내 미기록 여부가 함께 온다.
+    정렬: 최근에 다녀온 지역이 위로.
     """
     partyVisitedRegions(partyId: ID!): [VisitedRegion!]!
 
@@ -86,7 +92,6 @@ type Query {
     """
     partyMapOverview(partyId: ID!): PartyMapOverview!
 
-    # TODO: 여행리캡 확정 후 변경 예정
     "팟의 여행 전체 집계 (리캡 이미지용)"
     partyTripStats(partyId: ID!): TripStats!
 }
@@ -264,18 +269,34 @@ type TripMemberRecord {
     image: Image
 }
 
-"여행 이미지 상세 보기 진입 화면의 지역 카드."
+"여행 앨범 진입 화면의 지역 카드."
 type VisitedRegion {
     "행정구역 코드. 광역시·도는 2자리, 시·군·구는 5자리다. (예: \"11\", \"31010\")"
     regionCode: String!
-    "\"N회\" — 이 지역 방문 횟수. 기록하기 화면의 다음 회차는 visitCount + 1."
+    "이 지역 방문 횟수. 카드에 노출되지는 않지만 지역 단위 집계로 남겨 둔다."
     visitCount: Int!
-    "스택(콜라주)용 대표 사진. 팟 전원 사진을 최신순으로 추린 것."
-    images: [Image!]!
-    "이 지역의 전체 사진 수. 스택에 담기지 않은 \"+N\" 계산용."
-    totalImageCount: Int!
+    "\"n/N명\"의 N — 팟 전체 멤버 수. slots의 길이와 같다."
+    memberCount: Int!
+    "\"n/N명\"의 n — 이 지역에 사진을 올린 멤버 수."
+    recordedMemberCount: Int!
+    """
+    멤버 한 명당 한 자리. 팟 가입 순서로 고정되며 사진이 없는 멤버도 빠지지 않는다.
+    [정책] 자리 순서가 곧 "누구 자리인지"라서, 프론트는 배열 순서 그대로 좌측부터 그리면 된다.
+    사진 위에 이름·아바타를 덧붙이지 않는 것이 기획 의도다.
+    """
+    slots: [RegionMemberSlot!]!
     "이 지역 방문 중 내가 기록하지 않은 게 있으면 true → \"아직 기록하지 않은 여행이 있어요\""
     hasUnrecordedTrip: Boolean!
+}
+
+"지역 카드의 멤버 자리 하나."
+type RegionMemberSlot {
+    member: User!
+    """
+    이 멤버가 이 지역에 남긴 사진. 아직 안 올렸으면 null — 프론트는 그 자리를 zzZ 플레이스홀더로 그린다.
+    [정책] 같은 지역을 여러 번 다녀와 사진이 여럿이면 가장 최근 것 1장만 내려간다.
+    """
+    image: Image
 }
 
 type Image {
@@ -288,13 +309,17 @@ type Image {
     createdAt: DateTime!
 }
 
-"\"200일 동안 5개 도시\" 티켓용 통계"
+"""
+리캡 카드용 통계.
+확정 문구는 "{국가명}에서 {N}개의 핀을 만들었어요" — 여기서 N이 regionCount다. (국가명은 MVP 기준 "대한민국" 고정)
+나머지 필드는 이전 문구("N일 동안 …")에서 쓰던 값이라 현재 화면에는 쓰이지 않는다.
+"""
 type TripStats {
-    "여행 횟수"
+    "여행 횟수. 현재 리캡 문구에는 쓰이지 않는다."
     tripCount: Int!
-    "방문한 지역(시·군·구) 수 (중복 지역은 1로 계산)"
+    "\"N개의 핀\" — 방문한 지역(시·군·구) 수 (중복 지역은 1로 계산)"
     regionCount: Int!
-    "[정책] 여행 일수 합계. 기간이 겹쳐도 각 여행 일수를 단순 합산한다."
+    "[정책] 여행 일수 합계. 기간이 겹쳐도 각 여행 일수를 단순 합산한다. 현재 리캡 문구에는 쓰이지 않는다."
     totalTravelDays: Int!
     firstTripDate: Date
     lastTripDate: Date
@@ -326,9 +351,12 @@ type MapCell {
     regionCode: String!
     "대표 키워드 스티커. 최빈 → 동률이면 최근 방문 → 그래도 동률이면 나중에 등록된 여행."
     keyword: TripKeyword!
-    "\"+N\" 배지 — 이 칸에서 다녀온 서로 다른 시·군·구 수. 같은 지역 재방문은 1로 센다."
+    "이 칸에서 다녀온 서로 다른 시·군·구 수. 같은 지역 재방문은 1로 센다."
     regionCount: Int!
-    "이 칸 안의 총 방문 횟수. 같은 지역 재방문도 각각 센다."
+    """
+    이 칸 안의 총 방문 횟수. 같은 지역 재방문도 각각 센다.
+    [주의] 지도의 "+N" 배지가 이 값이다 — 강릉 2회 + 동해 1회면 "+3"이다. regionCount가 아니다.
+    """
     visitCount: Int!
     "\"n/N\"의 n — 이 칸에 기록을 남긴 서로 다른 현재 멤버 수. 탈퇴/강퇴된 멤버의 기록은 세지 않는다."
     recordedMemberCount: Int!

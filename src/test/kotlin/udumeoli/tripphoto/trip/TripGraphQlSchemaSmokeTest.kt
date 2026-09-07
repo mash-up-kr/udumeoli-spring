@@ -275,9 +275,13 @@ class TripGraphQlSchemaSmokeTest {
                   partyVisitedRegions(partyId: "$partyId") {
                     regionCode
                     visitCount
-                    totalImageCount
+                    memberCount
+                    recordedMemberCount
                     hasUnrecordedTrip
-                    images { id originalUrl thumbnailUrl uploader { nickname } createdAt }
+                    slots {
+                      member { id nickname }
+                      image { id originalUrl thumbnailUrl uploader { nickname } createdAt }
+                    }
                   }
                 }
                 """.trimIndent(),
@@ -285,6 +289,15 @@ class TripGraphQlSchemaSmokeTest {
             .path("partyVisitedRegions[0].visitCount")
             .entity(Int::class.java)
             .isEqualTo(1)
+            .path("partyVisitedRegions[0].memberCount")
+            .entity(Int::class.java)
+            .isEqualTo(1)
+            .path("partyVisitedRegions[0].recordedMemberCount")
+            .entity(Int::class.java)
+            .isEqualTo(1)
+            .path("partyVisitedRegions[0].slots")
+            .entityList(Object::class.java)
+            .hasSize(1)
             .path("partyVisitedRegions[0].hasUnrecordedTrip")
             .entity(Boolean::class.java)
             .isEqualTo(false)
@@ -404,6 +417,108 @@ class TripGraphQlSchemaSmokeTest {
             .path("deleteParty")
             .entity(String::class.java)
             .isEqualTo(partyId)
+    }
+
+    @Test
+    fun `지역 카드는 팟 멤버 전원에게 가입 순서대로 자리를 준다`() {
+        val owner = createUser("방장")
+        val second = createUser("팟원2")
+        val third = createUser("팟원3")
+        val partyId = createPartyWith(owner, second, third)
+        val tripId = createTrip(owner, partyId)
+        recordTrip(second, tripId, takenAt = "2026-07-02")
+
+        // 방장·팟원2는 올렸고 팟원3은 아직이다 — 자리는 셋 다 나오고, 팟원3 자리만 비어 있어야 한다.
+        graphQlTester(owner)
+            .document(visitedRegionsDocument(partyId))
+            .execute()
+            .path("partyVisitedRegions[0].memberCount")
+            .entity(Int::class.java)
+            .isEqualTo(3)
+            .path("partyVisitedRegions[0].recordedMemberCount")
+            .entity(Int::class.java)
+            .isEqualTo(2)
+            .path("partyVisitedRegions[0].slots[*].member.nickname")
+            .entityList(String::class.java)
+            .containsExactly("방장", "팟원2", "팟원3")
+            .path("partyVisitedRegions[0].slots[2].image")
+            .valueIsNull()
+    }
+
+    @Test
+    fun `같은 지역을 다시 다녀오면 자리에는 가장 최근 사진이 걸린다`() {
+        val owner = createUser("방장")
+        val partyId = createPartyWith(owner)
+        createTrip(owner, partyId)
+
+        // 1인팟이라 첫 방문이 이미 "전원 기록"이다 — 곧바로 재방문을 등록할 수 있다.
+        val secondVisitImageId = saveImage(requireNotNull(owner.id))
+        graphQlTester(owner)
+            .document(
+                """
+                mutation {
+                  createTrip(input: {
+                    partyId: "$partyId"
+                    regionCode: "11"
+                    keyword: FOOD
+                    startDate: "2026-09-01"
+                    endDate: "2026-09-02"
+                    image: { imageId: "$secondVisitImageId", takenAt: "2026-09-01" }
+                  }) { id }
+                }
+                """.trimIndent(),
+            ).execute()
+            .path("createTrip.id")
+            .hasValue()
+
+        graphQlTester(owner)
+            .document(visitedRegionsDocument(partyId))
+            .execute()
+            .path("partyVisitedRegions[0].visitCount")
+            .entity(Int::class.java)
+            .isEqualTo(2)
+            .path("partyVisitedRegions[0].slots")
+            .entityList(Any::class.java)
+            .hasSize(1)
+            .path("partyVisitedRegions[0].slots[0].image.id")
+            .entity(String::class.java)
+            .isEqualTo(secondVisitImageId.toString())
+    }
+
+    private fun visitedRegionsDocument(partyId: String): String =
+        """
+        query {
+          partyVisitedRegions(partyId: "$partyId") {
+            regionCode
+            visitCount
+            memberCount
+            recordedMemberCount
+            hasUnrecordedTrip
+            slots { member { id nickname } image { id } }
+          }
+        }
+        """.trimIndent()
+
+    private fun recordTrip(
+        member: ServiceUser,
+        tripId: String,
+        takenAt: String,
+    ) {
+        val imageId = saveImage(requireNotNull(member.id))
+        graphQlTester(member)
+            .document(
+                """
+                mutation {
+                  recordTrip(input: {
+                    tripId: "$tripId"
+                    image: { imageId: "$imageId", takenAt: "$takenAt" }
+                    comment: "나도 다녀옴"
+                  }) { id }
+                }
+                """.trimIndent(),
+            ).execute()
+            .path("recordTrip.id")
+            .hasValue()
     }
 
     private fun createTripDocument(

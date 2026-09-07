@@ -7,6 +7,7 @@ import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
 import udumeoli.tripphoto.image.dto.toPayload
 import udumeoli.tripphoto.image.entity.Image
 import udumeoli.tripphoto.party.service.PartyQueryService
+import udumeoli.tripphoto.trip.dto.RegionMemberSlotPayload
 import udumeoli.tripphoto.trip.dto.TripPayload
 import udumeoli.tripphoto.trip.dto.TripRecordPayload
 import udumeoli.tripphoto.trip.dto.TripStatsPayload
@@ -75,7 +76,10 @@ class TripQueryService(
 
         val bundle = tripRecordReader.read(trips.ids())
         val myTripIds = bundle.recordedTripIdsOf(currentUserId)
-        val usersById = usersById(bundle.uploaderIds)
+        // 자리는 팟 멤버 전원 몫이라, 사진을 올린 적 없는 멤버까지 읽어야 한다.
+        val memberIds = partyQueryService.memberUserIdsInJoinOrder(partyId)
+        val usersById = usersById(memberIds + bundle.uploaderIds)
+        val members = memberIds.mapNotNull { usersById[it] }
 
         return trips
             .groupBy { it.regionCode }
@@ -83,13 +87,14 @@ class TripQueryService(
             // 최근에 다녀온 지역이 위로
             .sortedByDescending { (_, regionTrips) -> regionTrips.maxOf { it.startDate } }
             .map { (regionCode, regionTrips) ->
-                val images = bundle.imagesOfTrips(regionTrips.ids())
+                val slots = memberSlots(members, bundle.latestImageByMember(regionTrips.ids()), usersById, apiBaseUrl)
 
                 VisitedRegionPayload(
                     regionCode = regionCode,
                     visitCount = regionTrips.size,
-                    images = images.take(STACK_IMAGE_LIMIT).map { it.toPayloadWith(usersById, apiBaseUrl) },
-                    totalImageCount = images.size,
+                    memberCount = members.size,
+                    recordedMemberCount = slots.count { it.image != null },
+                    slots = slots,
                     hasUnrecordedTrip = regionTrips.ids().any { it !in myTripIds },
                 )
             }
@@ -222,8 +227,22 @@ private fun buildRecords(
         }
 }
 
-/** 지역 카드 스택에 내려주는 대표 사진 수. 나머지는 totalImageCount로 "+N" 처리한다. */
-private const val STACK_IMAGE_LIMIT = 5
+/**
+ * 지역 카드의 자리를 만든다 — 팟 멤버 전원이 가입 순서대로 한 자리씩 갖고, 사진이 없으면 빈 자리다.
+ * 자리 순서가 곧 "누구 자리인지"를 나타내기 때문에, 사진이 있는 멤버만 추려서는 안 된다.
+ */
+private fun memberSlots(
+    members: List<ServiceUser>,
+    imageByMemberId: Map<Long, Image>,
+    usersById: Map<Long, ServiceUser>,
+    apiBaseUrl: String,
+): List<RegionMemberSlotPayload> =
+    members.map { member ->
+        RegionMemberSlotPayload(
+            member = member.toPayload(),
+            image = imageByMemberId[requireNotNull(member.id)]?.toPayloadWith(usersById, apiBaseUrl),
+        )
+    }
 
 /** 목록 노출 순서 — 최근에 시작한 여행이 위로. */
 private val LATEST_FIRST: Comparator<Trip> =

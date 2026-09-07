@@ -10,7 +10,7 @@ import java.time.LocalDate
  *
  * 두 화면이 필요로 하는 각도가 달라서 진입점도 둘이다.
  * - 여행 목록([TripQueryService.trips]): 여행 → 멤버별 기록 → 그 기록의 사진 1장
- * - 지역 카드([TripQueryService.visitedRegions]): 여러 여행 → 팟 전원의 사진을 촬영일 최신순으로
+ * - 지역 카드([TripQueryService.visitedRegions]): 여러 여행 → 멤버별 가장 최근 사진 1장
  *
  * 원본 [TripImage]는 밖으로 내보내지 않는다. 정렬 규칙과 "기록 1건에 사진 1장" 정책이
  * 여기 한 군데에만 있도록 [Image]로 바꿔서 돌려준다.
@@ -41,13 +41,21 @@ class TripRecordBundle(
             .minWithOrNull(LATEST)
             ?.let { imagesById[it.imageId] }
 
-    /** 여행 여러 건에 팟 전원이 올린 사진 — 촬영일 최신순. */
-    fun imagesOfTrips(tripIds: Collection<Long>): List<Image> =
+    /**
+     * 여행 여러 건에 대해 멤버별 사진 1장 — 지역 카드의 자리 하나에 사진 하나가 들어가기 때문이다.
+     * 같은 지역을 여러 번 다녀와 한 멤버의 사진이 여럿이면 가장 최근 것을 쓴다.
+     */
+    fun latestImageByMember(tripIds: Collection<Long>): Map<Long, Image> =
         tripIds
             .flatMap(::recordsOf)
-            .flatMap { tripImagesByRecordId[requireNotNull(it.id)].orEmpty() }
-            .sortedWith(LATEST)
-            .mapNotNull { imagesById[it.imageId] }
+            .groupBy { it.serviceUserId }
+            .mapNotNull { (memberId, memberRecords) ->
+                memberRecords
+                    .flatMap { tripImagesByRecordId[requireNotNull(it.id)].orEmpty() }
+                    .minWithOrNull(LATEST)
+                    ?.let { imagesById[it.imageId] }
+                    ?.let { memberId to it }
+            }.toMap()
 
     companion object {
         val EMPTY = TripRecordBundle(emptyList(), emptyList(), emptyMap())

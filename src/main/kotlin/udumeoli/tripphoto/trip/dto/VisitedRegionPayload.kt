@@ -6,8 +6,6 @@ import udumeoli.tripphoto.user.dto.UserPayload
 /** 팟이 방문한 지역 1곳과 그 지역의 여행 요약 (GraphQL `VisitedRegion`). */
 data class VisitedRegionPayload(
     val regionCode: String,
-    /** 이 지역 방문 횟수. 카드에 노출되지는 않지만 지역 단위 집계로 남겨 둔다. */
-    val visitCount: Int,
     /** "n/N명"의 N — 팟 전체 멤버 수. [slots]의 크기와 같다. */
     val memberCount: Int,
     /** "n/N명"의 n — 이 지역에 사진을 올린 멤버 수. */

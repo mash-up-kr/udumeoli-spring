@@ -176,12 +176,11 @@ class TripGraphQlSchemaSmokeTest {
         graphQlTester(owner)
             .document(createTripDocument(partyId, imageId))
             .execute()
-            .path("createTrip.visitSequence")
-            .entity(Int::class.java)
-            .isEqualTo(1)
-            .path("createTrip.keyword")
+            .path("createTrip.records[0].keyword")
             .entity(String::class.java)
             .isEqualTo("HEALING")
+            .path("createTrip.records[1].keyword")
+            .valueIsNull()
             .path("createTrip.records[*].recorded")
             .entityList(Boolean::class.java)
             .containsExactly(true, false)
@@ -205,6 +204,7 @@ class TripGraphQlSchemaSmokeTest {
                 mutation {
                   recordTrip(input: {
                     tripId: "$tripId"
+                    keyword: DESSERT
                     image: { imageId: "$memberImageId" }
                     comment: "나도"
                   }) {
@@ -235,12 +235,8 @@ class TripGraphQlSchemaSmokeTest {
                   partyTrips(partyId: "$partyId") {
                     id
                     regionCode
-                    keyword
-                    startDate
-                    endDate
-                    visitSequence
                     createdAt
-                    records { recorded image { thumbnailUrl } }
+                    records { recorded keyword image { thumbnailUrl } }
                   }
                 }
                 """.trimIndent(),
@@ -253,11 +249,11 @@ class TripGraphQlSchemaSmokeTest {
             .document(
                 """
                 query {
-                  partyTripsInRegion(partyId: "$partyId", regionCode: "11") { id regionCode }
+                  partyTripInRegion(partyId: "$partyId", regionCode: "11") { id regionCode }
                 }
                 """.trimIndent(),
             ).execute()
-            .path("partyTripsInRegion[0].regionCode")
+            .path("partyTripInRegion.regionCode")
             .entity(String::class.java)
             .isEqualTo("11")
     }
@@ -274,7 +270,6 @@ class TripGraphQlSchemaSmokeTest {
                 query {
                   partyVisitedRegions(partyId: "$partyId") {
                     regionCode
-                    visitCount
                     memberCount
                     recordedMemberCount
                     hasUnrecordedTrip
@@ -286,9 +281,6 @@ class TripGraphQlSchemaSmokeTest {
                 }
                 """.trimIndent(),
             ).execute()
-            .path("partyVisitedRegions[0].visitCount")
-            .entity(Int::class.java)
-            .isEqualTo(1)
             .path("partyVisitedRegions[0].memberCount")
             .entity(Int::class.java)
             .isEqualTo(1)
@@ -307,18 +299,14 @@ class TripGraphQlSchemaSmokeTest {
                 """
                 query {
                   partyTripStats(partyId: "$partyId") {
-                    tripCount
                     regionCount
-                    totalTravelDays
-                    firstTripDate
-                    lastTripDate
                   }
                 }
                 """.trimIndent(),
             ).execute()
-            .path("partyTripStats.totalTravelDays")
+            .path("partyTripStats.regionCount")
             .entity(Int::class.java)
-            .isEqualTo(3)
+            .isEqualTo(1)
     }
 
     @Test
@@ -333,7 +321,7 @@ class TripGraphQlSchemaSmokeTest {
                 query {
                   partyMapOverview(partyId: "$partyId") {
                     memberCount
-                    country { regionCode keyword regionCount visitCount recordedMemberCount }
+                    country { regionCode keyword regionCount recordedMemberCount }
                   }
                 }
                 """.trimIndent(),
@@ -354,7 +342,7 @@ class TripGraphQlSchemaSmokeTest {
             .document(
                 """
                 mutation {
-                  recordTrip(input: { tripId: "$tripId", image: { imageId: "$memberImageId" } }) { id }
+                  recordTrip(input: { tripId: "$tripId", keyword: PHOTO, image: { imageId: "$memberImageId" } }) { id }
                 }
                 """.trimIndent(),
             ).execute()
@@ -446,12 +434,12 @@ class TripGraphQlSchemaSmokeTest {
     }
 
     @Test
-    fun `같은 지역을 다시 다녀오면 자리에는 가장 최근 사진이 걸린다`() {
+    fun `같은 지역에 다시 올리면 내 자리 사진이 교체된다`() {
         val owner = createUser("방장")
         val partyId = createPartyWith(owner)
         createTrip(owner, partyId)
 
-        // 1인팟이라 첫 방문이 이미 "전원 기록"이다 — 곧바로 재방문을 등록할 수 있다.
+        // 핀은 지역마다 하나라 다시 올려도 새 핀이 생기지 않고 내 기록만 새 값으로 바뀐다.
         val secondVisitImageId = saveImage(requireNotNull(owner.id))
         graphQlTester(owner)
             .document(
@@ -461,8 +449,6 @@ class TripGraphQlSchemaSmokeTest {
                     partyId: "$partyId"
                     regionCode: "11"
                     keyword: FOOD
-                    startDate: "2026-09-01"
-                    endDate: "2026-09-02"
                     image: { imageId: "$secondVisitImageId", takenAt: "2026-09-01" }
                   }) { id }
                 }
@@ -474,9 +460,9 @@ class TripGraphQlSchemaSmokeTest {
         graphQlTester(owner)
             .document(visitedRegionsDocument(partyId))
             .execute()
-            .path("partyVisitedRegions[0].visitCount")
-            .entity(Int::class.java)
-            .isEqualTo(2)
+            .path("partyVisitedRegions")
+            .entityList(Any::class.java)
+            .hasSize(1)
             .path("partyVisitedRegions[0].slots")
             .entityList(Any::class.java)
             .hasSize(1)
@@ -490,7 +476,6 @@ class TripGraphQlSchemaSmokeTest {
         query {
           partyVisitedRegions(partyId: "$partyId") {
             regionCode
-            visitCount
             memberCount
             recordedMemberCount
             hasUnrecordedTrip
@@ -511,6 +496,7 @@ class TripGraphQlSchemaSmokeTest {
                 mutation {
                   recordTrip(input: {
                     tripId: "$tripId"
+                    keyword: HEALING
                     image: { imageId: "$imageId", takenAt: "$takenAt" }
                     comment: "나도 다녀옴"
                   }) { id }
@@ -531,21 +517,16 @@ class TripGraphQlSchemaSmokeTest {
             partyId: "$partyId"
             regionCode: "11"
             keyword: HEALING
-            startDate: "2026-07-01"
-            endDate: "2026-07-03"
             image: { imageId: "$imageId", takenAt: "2026-07-02" }
             comment: "좋았다"
           }) {
             id
             regionCode
-            keyword
-            startDate
-            endDate
-            visitSequence
             createdAt
             records {
               member { id nickname profileImage }
               recorded
+              keyword
               comment
               image { id originalUrl thumbnailUrl uploader { id } createdAt }
             }

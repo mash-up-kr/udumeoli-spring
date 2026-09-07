@@ -1,5 +1,6 @@
 package udumeoli.tripphoto.trip.service
 
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import udumeoli.tripphoto.common.graphql.GraphQlDomainException
@@ -11,14 +12,17 @@ import udumeoli.tripphoto.trip.dto.RecordTripInput
 import udumeoli.tripphoto.trip.dto.TripImageInput
 import udumeoli.tripphoto.trip.dto.TripPayload
 import udumeoli.tripphoto.trip.entity.Trip
+import udumeoli.tripphoto.trip.entity.TripKeyword
 import udumeoli.tripphoto.trip.entity.TripRecord
 import udumeoli.tripphoto.trip.repository.TripRecordRepository
 import udumeoli.tripphoto.trip.repository.TripRepository
 
 /**
- * - createTrip: 새 방문 + 내 기록 (같은 지역의 이전 방문이 전부 끝났을 때만)
- * - recordTrip: 이미 있는 방문에 내 기록 (재호출 시 통째 교체)
- * - deleteTripRecord: 내 기록 삭제, 마지막 기록이면 여행도 함께 정리
+ * 두 뮤테이션이 하는 일은 같다 — "이 지역에 내 기록을 남긴다". 핀을 어떻게 지목하느냐만 다르다.
+ *
+ * - createTrip: 지역 코드로 지목. 핀이 없으면 만든다. (지도에서 + 버튼을 눌러 들어온 경우)
+ * - recordTrip: 이미 있는 핀을 id로 지목. (팟원이 먼저 찍어 둔 지역에 내 사진을 얹는 경우)
+ * - deleteTripRecord: 내 기록 삭제, 마지막 기록이면 핀도 함께 정리
  */
 @Service
 class TripCommandService(
@@ -35,33 +39,15 @@ class TripCommandService(
         input: CreateTripInput,
     ): TripPayload {
         partyQueryService.requireMember(input.partyId, currentUserId)
-        val regionCode = input.regionCode
-        if (!regionRepository.existsByRegionCode(regionCode)) {
+        if (!regionRepository.existsByRegionCode(input.regionCode)) {
             throw GraphQlDomainException(
                 GraphQlErrorCode.REGION_NOT_FOUND,
                 "존재하지 않는 지역입니다: ${input.regionCode}",
             )
         }
-        if (input.startDate.isAfter(input.endDate)) {
-            throw GraphQlDomainException(
-                GraphQlErrorCode.VALIDATION_ERROR,
-                "여행 시작일은 종료일보다 늦을 수 없습니다.",
-            )
-        }
-        requireRegionTripsCompleted(input.partyId, regionCode)
 
-        val trip =
-            tripRepository.save(
-                Trip(
-                    partyId = input.partyId,
-                    regionCode = regionCode,
-                    keyword = input.keyword,
-                    startDate = input.startDate,
-                    endDate = input.endDate,
-                    createdBy = currentUserId,
-                ),
-            )
-        writeRecord(requireNotNull(trip.id), currentUserId, input.image, input.comment)
+        val trip = pinOf(input.partyId, input.regionCode, currentUserId)
+        writeRecord(requireNotNull(trip.id), currentUserId, input.keyword, input.image, input.comment)
         return tripQueryService.toPayload(currentUserId, trip)
     }
 
@@ -73,7 +59,7 @@ class TripCommandService(
         val trip = tripQueryService.requireTrip(input.tripId)
         partyQueryService.requireMember(trip.partyId, currentUserId)
 
-        writeRecord(input.tripId, currentUserId, input.image, input.comment)
+        writeRecord(input.tripId, currentUserId, input.keyword, input.image, input.comment)
         return tripQueryService.toPayload(currentUserId, trip)
     }
 
@@ -102,54 +88,41 @@ class TripCommandService(
     }
 
     /**
-     * 같은 지역의 이전 방문이 전부 끝나야 다음 방문을 등록할 수 있다.
-     * 잠금은 같은 지역에만 걸린다 — 다른 지역은 미완료 여행이 남아 있어도 자유롭게 등록한다.
+     * 그 지역의 핀을 가져온다. 아직 아무도 안 찍었으면 새로 찍는다.
      *
-     * "끝났다"의 기준은 **현재** 팟 멤버 전원이 기록을 남겼는지다. 나가거나 강퇴된 멤버는 세지 않는다.
-     * 나간 멤버의 기록은 leaveParty가 지우고 강퇴된 멤버의 기록은 남지만, 어느 쪽이든
-     * 현재 멤버 집합에 없으면 판정에 끼어들지 않는다 — 기록하지 않고 떠난 한 사람 때문에
-     * 남은 멤버가 그 지역에 영영 묶이는 일을 막으려는 것이다.
-     *
-     * 이 지역 첫 방문이면 막을 이전 여행이 없어 조회 한 번으로 끝난다.
+     * 두 사람이 같은 지역을 동시에 찍으면 uq_trip_party_region이 한쪽을 막는데,
+     * 그건 실패가 아니라 "먼저 찍은 핀이 이미 있다"는 뜻이라 그 핀을 다시 읽어 이어 쓴다.
      */
-    private fun requireRegionTripsCompleted(
+    private fun pinOf(
         partyId: Long,
         regionCode: String,
-    ) {
-        val previousTrips = tripRepository.findAllByPartyIdAndRegionCode(partyId, regionCode)
-        if (previousTrips.isEmpty()) return
-
-        val currentMemberIds = partyQueryService.memberUserIdsInJoinOrder(partyId).toSet()
-        val recordedMemberIdsByTripId =
-            tripRecordRepository
-                .findAllByTripIdIn(previousTrips.map { requireNotNull(it.id) })
-                .groupBy { it.tripId }
-                .mapValues { (_, records) -> records.map { it.serviceUserId }.toSet() }
-
-        val hasIncompleteTrip =
-            previousTrips.any { trip ->
-                !recordedMemberIdsByTripId[requireNotNull(trip.id)].orEmpty().containsAll(currentMemberIds)
+        currentUserId: Long,
+    ): Trip =
+        tripRepository.findByPartyIdAndRegionCode(partyId, regionCode)
+            ?: try {
+                tripRepository.save(Trip(partyId = partyId, regionCode = regionCode, createdBy = currentUserId))
+            } catch (_: DuplicateKeyException) {
+                requireNotNull(tripRepository.findByPartyIdAndRegionCode(partyId, regionCode))
             }
-        if (hasIncompleteTrip) {
-            throw GraphQlDomainException(
-                GraphQlErrorCode.REGION_HAS_INCOMPLETE_TRIP,
-                "모두가 기록해야 다음 여행을 기록할 수 있어요.",
-            )
-        }
-    }
 
-    /** 기록은 사진 1장 — 다시 부르면 기존 사진을 새 사진으로 교체한다. */
+    /** 기록은 사진 1장 — 다시 부르면 키워드·코멘트·사진을 통째로 새 값으로 바꾼다. */
     private fun writeRecord(
         tripId: Long,
         currentUserId: Long,
+        keyword: TripKeyword,
         image: TripImageInput,
         comment: String?,
     ) {
         val existing = tripRecordRepository.findByTripIdAndServiceUserId(tripId, currentUserId)
         val record =
             tripRecordRepository.save(
-                existing?.copy(comment = comment)
-                    ?: TripRecord(tripId = tripId, serviceUserId = currentUserId, comment = comment),
+                existing?.copy(keyword = keyword, comment = comment)
+                    ?: TripRecord(
+                        tripId = tripId,
+                        serviceUserId = currentUserId,
+                        keyword = keyword,
+                        comment = comment,
+                    ),
             )
         tripImageWriter.setImages(requireNotNull(record.id), listOf(image))
     }

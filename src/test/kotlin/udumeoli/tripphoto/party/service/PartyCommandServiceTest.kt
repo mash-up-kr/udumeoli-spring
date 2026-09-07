@@ -28,7 +28,6 @@ import udumeoli.tripphoto.trip.repository.TripRecordRepository
 import udumeoli.tripphoto.trip.repository.TripRepository
 import udumeoli.tripphoto.user.entity.ServiceUser
 import udumeoli.tripphoto.user.service.UserService
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 class PartyCommandServiceTest {
@@ -318,9 +317,6 @@ class PartyCommandServiceTest {
             id = id,
             partyId = partyId,
             regionCode = "SEOUL",
-            keyword = TripKeyword.PHOTO,
-            startDate = LocalDate.of(2026, 7, 1),
-            endDate = LocalDate.of(2026, 7, 2),
             auditMetadata = audit(),
         )
 
@@ -328,7 +324,14 @@ class PartyCommandServiceTest {
         id: Long,
         tripId: Long,
         serviceUserId: Long,
-    ): TripRecord = TripRecord(id = id, tripId = tripId, serviceUserId = serviceUserId, auditMetadata = audit())
+    ): TripRecord =
+        TripRecord(
+            id = id,
+            tripId = tripId,
+            serviceUserId = serviceUserId,
+            keyword = TripKeyword.PHOTO,
+            auditMetadata = audit(),
+        )
 
     private fun stubPartyPayload(
         partyId: Long,

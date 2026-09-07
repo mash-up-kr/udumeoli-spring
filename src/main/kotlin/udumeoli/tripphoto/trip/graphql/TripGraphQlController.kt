@@ -28,11 +28,11 @@ class TripGraphQlController(
     ): List<TripPayload> = tripQueryService.trips(currentUserId, partyId)
 
     @QueryMapping
-    fun partyTripsInRegion(
+    fun partyTripInRegion(
         @LoginUser currentUserId: Long,
         @Argument partyId: Long,
         @Argument regionCode: String,
-    ): List<TripPayload> = tripQueryService.tripsByRegion(currentUserId, partyId, regionCode)
+    ): TripPayload? = tripQueryService.tripInRegion(currentUserId, partyId, regionCode)
 
     @QueryMapping
     fun partyVisitedRegions(

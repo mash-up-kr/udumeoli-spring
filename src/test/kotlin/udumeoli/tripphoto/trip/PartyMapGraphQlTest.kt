@@ -23,7 +23,6 @@ import udumeoli.tripphoto.trip.repository.TripRecordRepository
 import udumeoli.tripphoto.trip.repository.TripRepository
 import udumeoli.tripphoto.user.entity.ServiceUser
 import udumeoli.tripphoto.user.repository.ServiceUserRepository
-import java.time.LocalDate
 
 /** 설계 문서 5장 워크스루를 H2에 그대로 심고 세 레벨 응답을 통째로 검증한다. */
 @SpringBootTest
@@ -92,7 +91,7 @@ class PartyMapGraphQlTest {
     }
 
     @Test
-    fun `워크스루 6건이 세 레벨로 집계돼 내려온다`() {
+    fun `워크스루 핀 5개가 세 레벨로 집계돼 내려온다`() {
         val owner = createUser("101")
         val second = createUser("102")
         val third = createUser("103")
@@ -115,36 +114,29 @@ class PartyMapGraphQlTest {
             .path("partyMapOverview.country.regionCount")
             .entity(Int::class.java)
             .isEqualTo(5)
-            .path("partyMapOverview.country.visitCount")
-            .entity(Int::class.java)
-            .isEqualTo(6)
             .path("partyMapOverview.country.recordedMemberCount")
             .entity(Int::class.java)
             .isEqualTo(4)
             .path("partyMapOverview.provinces[*].regionCode")
             .entityList(String::class.java)
             .containsExactly("11", "32", "39")
+            // 강원에 묶인 기록은 디저트 3 · 힐링 1 · 맛집 1 · 액티비티 1 — 최빈인 디저트가 대표다.
             .path("partyMapOverview.provinces[1].keyword")
             .entity(String::class.java)
-            .isEqualTo("ACTIVITY")
+            .isEqualTo("DESSERT")
             .path("partyMapOverview.provinces[1].regionCount")
             .entity(Int::class.java)
             .isEqualTo(3)
-            .path("partyMapOverview.provinces[1].visitCount")
-            .entity(Int::class.java)
-            .isEqualTo(4)
             .path("partyMapOverview.provinces[1].recordedMemberCount")
             .entity(Int::class.java)
             .isEqualTo(3)
             .path("partyMapOverview.municipalities[*].regionCode")
             .entityList(String::class.java)
             .containsExactly("11", "32030", "32040", "32410", "39010")
+            // 강릉(32030)은 힐링 1 · 맛집 1로 동률이라 가나다순 앞선 맛집이 대표다.
             .path("partyMapOverview.municipalities[1].keyword")
             .entity(String::class.java)
             .isEqualTo("FOOD")
-            .path("partyMapOverview.municipalities[1].visitCount")
-            .entity(Int::class.java)
-            .isEqualTo(2)
             .path("partyMapOverview.municipalities[1].regionCount")
             .entity(Int::class.java)
             .isEqualTo(1)
@@ -162,7 +154,7 @@ class PartyMapGraphQlTest {
         val partyId = createParty(owner, second, third, fourth)
         seedWalkthrough(partyId, owner, second, third, fourth)
 
-        // 방장은 서울(11)만 안 올렸다. 강릉은 1·2차 모두 올려서 회색이 아니다.
+        // 방장은 서울(11) 핀에만 사진을 안 올렸다.
         graphQlTester(owner)
             .document(OVERVIEW_DOCUMENT.format(partyId))
             .execute()
@@ -181,12 +173,12 @@ class PartyMapGraphQlTest {
     }
 
     @Test
-    fun `같은 지역을 두 번 갔는데 한 번만 올렸으면 그 지역은 회색이다`() {
+    fun `팟원만 올린 지역은 내 눈에 회색으로 내려온다`() {
         val owner = createUser("방장")
-        val partyId = createParty(owner)
-        val first = saveTrip(partyId, "32030", TripKeyword.FOOD, "2026-03-01")
-        saveTrip(partyId, "32030", TripKeyword.FOOD, "2026-05-10")
-        saveRecords(first, owner)
+        val member = createUser("팟원")
+        val partyId = createParty(owner, member)
+        val gangneung = saveTrip(partyId, "32030")
+        saveRecords(gangneung, TripKeyword.FOOD, member)
 
         graphQlTester(owner)
             .document(OVERVIEW_DOCUMENT.format(partyId))
@@ -194,9 +186,9 @@ class PartyMapGraphQlTest {
             .path("partyMapOverview.municipalities[0].hasUnrecordedTrip")
             .entity(Boolean::class.java)
             .isEqualTo(true)
-            .path("partyMapOverview.municipalities[0].visitCount")
+            .path("partyMapOverview.municipalities[0].recordedMemberCount")
             .entity(Int::class.java)
-            .isEqualTo(2)
+            .isEqualTo(1)
     }
 
     @Test
@@ -204,8 +196,8 @@ class PartyMapGraphQlTest {
         val owner = createUser("방장")
         val kicked = createUser("강퇴대상")
         val partyId = createParty(owner, kicked)
-        val tripId = saveTrip(partyId, "32030", TripKeyword.HEALING, "2026-03-01")
-        saveRecords(tripId, owner, kicked)
+        val tripId = saveTrip(partyId, "32030")
+        saveRecords(tripId, TripKeyword.HEALING, owner, kicked)
 
         // kickMember는 party_member만 지우고 trip_record는 남긴다 — 그 기록이 세지면 n(2)이 N(1)을 넘는다.
         graphQlTester(owner)
@@ -233,46 +225,39 @@ class PartyMapGraphQlTest {
         third: ServiceUser,
         fourth: ServiceUser,
     ) {
-        val gangneungFirst = saveTrip(partyId, "32030", TripKeyword.HEALING, "2026-03-01")
-        val gangneungSecond = saveTrip(partyId, "32030", TripKeyword.FOOD, "2026-05-10")
-        val donghae = saveTrip(partyId, "32040", TripKeyword.DESSERT, "2026-06-02")
-        val yangyang = saveTrip(partyId, "32410", TripKeyword.ACTIVITY, "2026-07-20")
-        val seoul = saveTrip(partyId, "11", TripKeyword.PHOTO, "2026-07-25")
-        val jeju = saveTrip(partyId, "39010", TripKeyword.DESSERT, "2026-08-01")
+        val gangneung = saveTrip(partyId, "32030")
+        val donghae = saveTrip(partyId, "32040")
+        val yangyang = saveTrip(partyId, "32410")
+        val seoul = saveTrip(partyId, "11")
+        val jeju = saveTrip(partyId, "39010")
 
-        saveRecords(gangneungFirst, owner, second)
-        saveRecords(gangneungSecond, owner)
-        saveRecords(donghae, owner, second, third)
-        saveRecords(yangyang, owner)
-        saveRecords(seoul, second)
-        saveRecords(jeju, owner, fourth)
+        // 강릉만 두 사람이 서로 다른 키워드를 골랐다 — 동률 규칙이 걸리는 유일한 칸이다.
+        saveRecords(gangneung, TripKeyword.HEALING, owner)
+        saveRecords(gangneung, TripKeyword.FOOD, second)
+        saveRecords(donghae, TripKeyword.DESSERT, owner, second, third)
+        saveRecords(yangyang, TripKeyword.ACTIVITY, owner)
+        // 서울은 방장이 비워 둔다.
+        saveRecords(seoul, TripKeyword.PHOTO, second)
+        saveRecords(jeju, TripKeyword.DESSERT, owner, fourth)
     }
 
     private fun saveTrip(
         partyId: Long,
         regionCode: String,
-        keyword: TripKeyword,
-        startDate: String,
     ): Long =
         requireNotNull(
-            tripRepository
-                .save(
-                    Trip(
-                        partyId = partyId,
-                        regionCode = regionCode,
-                        keyword = keyword,
-                        startDate = LocalDate.parse(startDate),
-                        endDate = LocalDate.parse(startDate),
-                    ),
-                ).id,
+            tripRepository.save(Trip(partyId = partyId, regionCode = regionCode)).id,
         )
 
     private fun saveRecords(
         tripId: Long,
+        keyword: TripKeyword,
         vararg members: ServiceUser,
     ) {
         members.forEach { member ->
-            tripRecordRepository.save(TripRecord(tripId = tripId, serviceUserId = requireNotNull(member.id)))
+            tripRecordRepository.save(
+                TripRecord(tripId = tripId, serviceUserId = requireNotNull(member.id), keyword = keyword),
+            )
         }
     }
 
@@ -311,9 +296,9 @@ class PartyMapGraphQlTest {
             query {
               partyMapOverview(partyId: "%s") {
                 memberCount
-                country { regionCode keyword regionCount visitCount recordedMemberCount hasUnrecordedTrip latestTripAt }
-                provinces { regionCode keyword regionCount visitCount recordedMemberCount hasUnrecordedTrip }
-                municipalities { regionCode keyword regionCount visitCount recordedMemberCount hasUnrecordedTrip }
+                country { regionCode keyword regionCount recordedMemberCount hasUnrecordedTrip latestTripAt }
+                provinces { regionCode keyword regionCount recordedMemberCount hasUnrecordedTrip }
+                municipalities { regionCode keyword regionCount recordedMemberCount hasUnrecordedTrip }
               }
             }
             """.trimIndent()

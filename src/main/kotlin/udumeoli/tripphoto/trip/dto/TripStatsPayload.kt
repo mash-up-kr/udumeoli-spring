@@ -1,12 +1,7 @@
 package udumeoli.tripphoto.trip.dto
 
-import java.time.LocalDate
-
-/** 팟의 여행 전체를 아우르는 집계 (GraphQL `TripStats`). */
+/** 리캡 카드용 집계 (GraphQL `TripStats`). */
 data class TripStatsPayload(
-    val tripCount: Int,
+    /** "{국가명}에서 {N}개의 핀을 만들었어요"의 N. 핀은 지역마다 하나라 곧 방문한 지역 수다. */
     val regionCount: Int,
-    val totalTravelDays: Int,
-    val firstTripDate: LocalDate?,
-    val lastTripDate: LocalDate?,
 )

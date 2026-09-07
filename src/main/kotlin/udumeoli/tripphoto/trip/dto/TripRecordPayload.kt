@@ -1,16 +1,19 @@
 package udumeoli.tripphoto.trip.dto
 
 import udumeoli.tripphoto.image.dto.ImagePayload
+import udumeoli.tripphoto.trip.entity.TripKeyword
 import udumeoli.tripphoto.user.dto.UserPayload
 
 /**
- * 여행 기록의 한 행. 팟 멤버 전원이 한 행씩 내려가며,
+ * 핀에 붙은 기록 한 행. 팟 멤버 전원이 한 행씩 내려가며,
  * 아직 사진을 올리지 않은 멤버는 [recorded] = false 인 placeholder 행이 된다.
  * "내 기록"은 별도 플래그 없이 목록 맨 앞에 오는 것으로 표현한다.
  */
 data class TripRecordPayload(
     val member: UserPayload,
     val recorded: Boolean,
+    /** 올린 사람이 고른 키워드. placeholder 행은 null이다. */
+    val keyword: TripKeyword?,
     val comment: String?,
     /** 기록 1건에 사진 1장. [recorded] = false인 placeholder 행은 null이다. */
     val image: ImagePayload?,

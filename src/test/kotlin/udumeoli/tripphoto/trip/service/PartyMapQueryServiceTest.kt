@@ -18,7 +18,6 @@ import udumeoli.tripphoto.trip.entity.TripKeyword
 import udumeoli.tripphoto.trip.entity.TripRecord
 import udumeoli.tripphoto.trip.repository.TripRecordRepository
 import udumeoli.tripphoto.trip.repository.TripRepository
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 class PartyMapQueryServiceTest {
@@ -74,17 +73,17 @@ class PartyMapQueryServiceTest {
     fun `여행 건수와 무관하게 리포지토리를 각각 한 번씩만 읽는다`() {
         val trips =
             listOf(
-                trip(id = 1, regionCode = "32030", keyword = TripKeyword.FOOD),
-                trip(id = 2, regionCode = "32040", keyword = TripKeyword.DESSERT),
+                pin(id = 1, regionCode = "32030"),
+                pin(id = 2, regionCode = "32040"),
             )
         every { partyQueryService.requireMember(7L, 101L) } just Runs
         every { tripRepository.findAllByPartyId(7L) } returns trips
         every { partyQueryService.memberUserIdsInJoinOrder(7L) } returns listOf(101L, 102L, 103L, 104L)
         every { tripRecordRepository.findAllByTripIdIn(listOf(1L, 2L)) } returns
             listOf(
-                TripRecord(id = 11, tripId = 1L, serviceUserId = 101L),
-                TripRecord(id = 12, tripId = 1L, serviceUserId = 102L),
-                TripRecord(id = 13, tripId = 2L, serviceUserId = 101L),
+                record(id = 11, tripId = 1L, memberId = 101L),
+                record(id = 12, tripId = 1L, memberId = 102L),
+                record(id = 13, tripId = 2L, memberId = 101L),
             )
 
         val overview = partyMapQueryService.mapOverview(currentUserId = 101L, partyId = 7L)
@@ -99,11 +98,11 @@ class PartyMapQueryServiceTest {
 
     @Test
     fun `회색 여부는 요청한 사람 기준으로 계산된다`() {
-        val trips = listOf(trip(id = 1, regionCode = "32030", keyword = TripKeyword.FOOD))
+        val trips = listOf(pin(id = 1, regionCode = "32030"))
         every { tripRepository.findAllByPartyId(7L) } returns trips
         every { partyQueryService.memberUserIdsInJoinOrder(7L) } returns listOf(101L, 102L)
         every { tripRecordRepository.findAllByTripIdIn(listOf(1L)) } returns
-            listOf(TripRecord(id = 11, tripId = 1L, serviceUserId = 101L))
+            listOf(record(id = 11, tripId = 1L, memberId = 101L))
 
         every { partyQueryService.requireMember(7L, 101L) } just Runs
         every { partyQueryService.requireMember(7L, 102L) } just Runs
@@ -116,11 +115,12 @@ class PartyMapQueryServiceTest {
     }
 
     @Test
-    fun `여행이 50건이어도 리포지토리를 각각 한 번씩만 읽는다`() {
+    fun `핀이 50개여도 리포지토리를 각각 한 번씩만 읽는다`() {
         val tripCount = 50
-        val trips = (1..tripCount).map { n -> trip(id = n.toLong(), regionCode = "32030", keyword = TripKeyword.FOOD) }
+        // 지역마다 핀이 하나라 코드도 전부 다르다.
+        val trips = (1..tripCount).map { n -> pin(id = n.toLong(), regionCode = "320%02d".format(n)) }
         val tripIds = trips.map { requireNotNull(it.id) }
-        val records = tripIds.map { tripId -> TripRecord(id = tripId + 1000, tripId = tripId, serviceUserId = 101L) }
+        val records = tripIds.map { tripId -> record(id = tripId + 1000, tripId = tripId, memberId = 101L) }
         every { partyQueryService.requireMember(7L, 101L) } just Runs
         every { tripRepository.findAllByPartyId(7L) } returns trips
         every { partyQueryService.memberUserIdsInJoinOrder(7L) } returns listOf(101L, 102L, 103L, 104L)
@@ -128,24 +128,26 @@ class PartyMapQueryServiceTest {
 
         val overview = partyMapQueryService.mapOverview(currentUserId = 101L, partyId = 7L)
 
-        assertThat(requireNotNull(overview.country).visitCount).isEqualTo(tripCount)
+        assertThat(requireNotNull(overview.country).regionCount).isEqualTo(tripCount)
         verify(exactly = 1) { tripRepository.findAllByPartyId(7L) }
         verify(exactly = 1) { tripRecordRepository.findAllByTripIdIn(any()) }
         verify(exactly = 1) { partyQueryService.memberUserIdsInJoinOrder(7L) }
     }
 }
 
-private fun trip(
+private fun pin(
     id: Long,
     regionCode: String,
-    keyword: TripKeyword,
 ): Trip =
     Trip(
         id = id,
         partyId = 7L,
         regionCode = regionCode,
-        keyword = keyword,
-        startDate = LocalDate.of(2026, 3, 1),
-        endDate = LocalDate.of(2026, 3, 1),
         auditMetadata = AuditMetadata(createdAt = LocalDateTime.of(2026, 3, 1, 0, 0).plusMinutes(id)),
     )
+
+private fun record(
+    id: Long,
+    tripId: Long,
+    memberId: Long,
+): TripRecord = TripRecord(id = id, tripId = tripId, serviceUserId = memberId, keyword = TripKeyword.FOOD)

@@ -143,4 +143,4 @@ jobs:
             echo "| 이미지 전송 시간(초) | $(( ${{ steps.transfer_end.outputs.epoch }} - ${{ steps.transfer_start.outputs.epoch }} )) |"
             echo ""
             echo "나머지 지표(time-to-ready, 기동로그, RSS, 콜드/웜 응답시간)는 위 'Measure startup & runtime metrics' 스텝 로그 참고 (서버의 /home/deploy/bench-result-aot.txt 에도 저장됨)"
-          } >> "$GITHUB_STEP_SUMMARY"
+          } | tee -a "$GITHUB_STEP_SUMMARY"

@@ -16,7 +16,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build native Docker image
+      - name: Build JIT Docker image
         run: |
           docker build \
             -t udumeoli-backend:${{ github.sha }} \
@@ -71,7 +71,8 @@ jobs:
             echo "Deploy complete: ${{ github.sha }}"
 
       - name: Wait for app to start
-        run: sleep 30
+        # JIT는 부팅(Flyway 마이그레이션, Oracle Wallet 연결 등)이 native보다 느려서 대기 시간을 늘림
+        run: sleep 60
 
       - name: Health check
         run: |

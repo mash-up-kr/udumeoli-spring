@@ -8,27 +8,20 @@ COPY gradle ./gradle
 RUN chmod +x ./gradlew
 RUN ./gradlew dependencies --no-daemon || true
 
-# 소스 복사 후 native 빌드
+# 소스 복사 후 jar 빌드 (JIT 벤치마크용 — native 빌드 아님)
 COPY . .
 RUN chmod +x ./gradlew
-RUN ./gradlew nativeCompile --no-daemon
+RUN ./gradlew bootJar --no-daemon
 
 # ===== Runtime stage =====
-FROM debian:bookworm-slim
+FROM ghcr.io/graalvm/graalvm-community:21
 WORKDIR /app
-
-# 필수 런타임 라이브러리만
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    libstdc++6 \
-    && rm -rf /var/lib/apt/lists/*
 
 # Wallet 마운트 포인트
 ENV TNS_ADMIN=/opt/oracle/wallet
 
-# native 바이너리만 복사
-COPY --from=builder /app/build/native/nativeCompile/udumeoli /app/udumeoli
-RUN chmod +x /app/udumeoli
+# jar만 복사
+COPY --from=builder /app/build/libs/*.jar /app/app.jar
 
 EXPOSE 8080
-ENTRYPOINT ["/app/udumeoli"]
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]

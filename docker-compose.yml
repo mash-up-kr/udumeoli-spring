@@ -3,6 +3,9 @@ services:
     image: udumeoli-backend:latest
     container_name: udumeoli-app
     restart: unless-stopped
+    # JIT 벤치마크용: 컨테이너 메모리 제한을 명시해서 JVM이 호스트 전체 메모리를 보고
+    # 힙을 과도하게 잡지 않도록 함. 서버 실제 가용 메모리에 맞춰 값 조정할 것.
+    mem_limit: 1g
     ports:
       # nginx 리버스 프록시만 접근하도록 로컬에만 바인딩
       - "127.0.0.1:8080:8080"
@@ -33,5 +36,4 @@ services:
     volumes:
       # 서버의 wallet 디렉토리를 컨테이너 안으로 read-only 마운트
       - /opt/oracle/wallet:/opt/oracle/wallet:ro
-    # 참고: runtime 이미지(debian-slim)에 curl 이 없어서 compose healthcheck 는 생략.
-    #       헬스체크는 deploy.yml 이 nginx 경유로 외부에서 수행함.
+    # 참고: compose healthcheck 는 생략. 헬스체크는 deploy.yml 이 nginx 경유로 외부에서 수행함.

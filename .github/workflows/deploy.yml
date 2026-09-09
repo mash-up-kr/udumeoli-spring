@@ -107,7 +107,7 @@ jobs:
             echo "time_to_ready_sec=$((END-START))" >> "$RESULT"
 
             # Spring Boot 자체 기동시간 로그
-            docker logs udumeoli-app 2>&1 | grep "Started Application" >> "$RESULT" || echo "started_log=NOT_FOUND" >> "$RESULT"
+            docker logs udumeoli-app 2>&1 | grep -E "Started .* in [0-9.]+ seconds" >> "$RESULT" || echo "started_log=NOT_FOUND" >> "$RESULT"
 
             # RSS: 기동 직후
             echo "rss_startup=$(docker stats --no-stream --format '{{.MemUsage}}' udumeoli-app)" >> "$RESULT"

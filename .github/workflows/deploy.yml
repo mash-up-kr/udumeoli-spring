@@ -3,7 +3,7 @@ name: Deploy
 on:
   push:
     branches: [main]
-  workflow_dispatch:   # Actions UI에서 브랜치 골라 수동 배포 (dev 검증용)
+  workflow_dispatch:   # Actions UI에서 브랜치 골라 수동 배포 (dev 검증용 / JIT-AOT 벤치마크용)
 
 jobs:
   build-and-deploy:
@@ -16,6 +16,10 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Record build start
+        id: build_start
+        run: echo "epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
+
       - name: Build JIT Docker image
         run: |
           docker build \
@@ -23,11 +27,21 @@ jobs:
             -t udumeoli-backend:latest \
             .
 
+      - name: Record build end & image size
+        id: build_end
+        run: |
+          echo "epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
+          echo "size=$(docker images udumeoli-backend:latest --format '{{.Size}}')" >> "$GITHUB_OUTPUT"
+
       - name: Save image
         run: docker save udumeoli-backend:latest | gzip > image.tar.gz
 
       - name: Check image size
         run: ls -lh image.tar.gz
+
+      - name: Record transfer start
+        id: transfer_start
+        run: echo "epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
 
       - name: Copy image to server
         uses: appleboy/scp-action@v0.1.7
@@ -37,6 +51,10 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "image.tar.gz"
           target: "/home/deploy/"
+
+      - name: Record transfer end
+        id: transfer_end
+        run: echo "epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
 
       # compose 파일을 리포 기준으로 덮어써 서버 수동 편집과의 드리프트를 막는다.
       # 비밀값은 서버의 /home/deploy/app/.env 에만 있고 여기서 건드리지 않는다 (.env는 gitignore).
@@ -70,11 +88,59 @@ jobs:
 
             echo "Deploy complete: ${{ github.sha }}"
 
-      - name: Wait for app to start
-        # JIT는 부팅(Flyway 마이그레이션, Oracle Wallet 연결 등)이 native보다 느려서 대기 시간을 늘림
-        run: sleep 60
+      # JIT-AOT 벤치마크용 지표 수집. 측정 후 이 브랜치는 삭제 예정이라 임시로 여기 둠.
+      - name: Measure startup & runtime metrics
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: deploy
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            RESULT=/home/deploy/bench-result-jit.txt
+            echo "=== bench-jit run $(date -u +%FT%TZ) (sha ${{ github.sha }}) ===" > "$RESULT"
 
-      - name: Health check
+            # time-to-ready: 헬스체크 폴링
+            START=$(date +%s)
+            until curl -sf http://localhost:8080/actuator/health > /dev/null; do sleep 1; done
+            END=$(date +%s)
+            echo "time_to_ready_sec=$((END-START))" >> "$RESULT"
+
+            # Spring Boot 자체 기동시간 로그
+            docker logs udumeoli-app 2>&1 | grep "Started Application" >> "$RESULT" || echo "started_log=NOT_FOUND" >> "$RESULT"
+
+            # RSS: 기동 직후
+            echo "rss_startup=$(docker stats --no-stream --format '{{.MemUsage}}' udumeoli-app)" >> "$RESULT"
+
+            # 콜드 요청 응답시간
+            cold=$(curl -s -o /dev/null -w "%{time_total}" http://localhost:8080/actuator/health)
+            echo "cold_request_sec=$cold" >> "$RESULT"
+
+            # 워밍업 (요청 경로의 JIT 컴파일이 웜업에 도달하도록 충분히 반복)
+            for i in $(seq 1 1000); do
+              curl -s -o /dev/null http://localhost:8080/actuator/health
+            done
+
+            # 웜 요청 응답시간
+            warm=$(curl -s -o /dev/null -w "%{time_total}" http://localhost:8080/actuator/health)
+            echo "warm_request_sec=$warm" >> "$RESULT"
+
+            # RSS: 워밍업 후 steady-state
+            echo "rss_after_warmup=$(docker stats --no-stream --format '{{.MemUsage}}' udumeoli-app)" >> "$RESULT"
+
+            echo "--- bench-result-jit.txt ---"
+            cat "$RESULT"
+
+      - name: Report build/transfer metrics
         run: |
-          curl -f http://${{ secrets.SERVER_HOST }}/actuator/health \
-            || (echo "❌ Health check failed" && exit 1)
+          {
+            echo "## 벤치마크 결과 (bench-jit / sha ${{ github.sha }})"
+            echo ""
+            echo "| 지표 | 값 |"
+            echo "|---|---|"
+            echo "| 빌드 시간(초) | $(( ${{ steps.build_end.outputs.epoch }} - ${{ steps.build_start.outputs.epoch }} )) |"
+            echo "| 이미지 크기 | ${{ steps.build_end.outputs.size }} |"
+            echo "| 이미지 전송 시간(초) | $(( ${{ steps.transfer_end.outputs.epoch }} - ${{ steps.transfer_start.outputs.epoch }} )) |"
+            echo ""
+            echo "나머지 지표(time-to-ready, 기동로그, RSS, 콜드/웜 응답시간)는 위 'Measure startup & runtime metrics' 스텝 로그 참고 (서버의 /home/deploy/bench-result-jit.txt 에도 저장됨)"
+          } >> "$GITHUB_STEP_SUMMARY"

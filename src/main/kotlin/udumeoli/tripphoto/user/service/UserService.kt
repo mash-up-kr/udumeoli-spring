@@ -26,7 +26,9 @@ class UserService(
     private fun resolveProfileImageUrl(profileImage: Long): String? {
         if (ServiceUser.isPresetProfileImage(profileImage)) return null
         // 썸네일/원본 여부에 상관없이 브라우저는 무조건 프록시를 통과해야 이미지를 스트리밍 받을 수 있습니다.
-        return imageService.findImageOrNull(profileImage)?.let { "${apiBaseUrl.trimEnd('/')}/api/images/${it.id}" }
+        return imageService.findImageOrNull(profileImage)?.let {
+            "${apiBaseUrl.trimEnd('/')}/api/images/${it.objectKey}"
+        }
     }
 
     @Suppress("ForbiddenComment")

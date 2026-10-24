@@ -11,6 +11,7 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component
 import org.springframework.web.util.UriComponentsBuilder
 import udumeoli.tripphoto.auth.config.AuthProperties
+import udumeoli.tripphoto.auth.entity.OAuth2Provider
 import udumeoli.tripphoto.auth.service.AuthService
 import udumeoli.tripphoto.auth.service.SocialProfile
 
@@ -26,7 +27,8 @@ class OAuth2LoginSuccessHandler(
     ) {
         val oauth = authentication as OAuth2AuthenticationToken
         val attributes = oauth.principal.attributes
-        val profile = extractProfile(oauth.authorizedClientRegistrationId, attributes)
+        val provider = OAuth2Provider.fromRegistrationId(oauth.authorizedClientRegistrationId)
+        val profile = extractProfile(provider, attributes)
         val code = authService.prepareOAuthLogin(profile)
         val callbackBase = resolveFrontendCallbackUrl(request)
         SecurityContextHolder.clearContext()
@@ -39,17 +41,44 @@ class OAuth2LoginSuccessHandler(
             ?: properties.frontendCallbackUrl
 
     private fun extractProfile(
-        provider: String,
+        provider: OAuth2Provider,
         attributes: Map<String, Any>,
-    ): SocialProfile {
-        val providerUserId = requireNotNull(attributes["id"] ?: attributes["sub"]).toString()
+    ): SocialProfile =
+        when (provider) {
+            OAuth2Provider.KAKAO -> extractKakaoProfile(attributes)
+            OAuth2Provider.GOOGLE -> extractGoogleProfile(attributes)
+            OAuth2Provider.APPLE -> extractAppleProfile(attributes)
+        }
+
+    private fun extractKakaoProfile(attributes: Map<String, Any>): SocialProfile {
+        val providerUserId = requireNotNull(attributes["id"]).toString()
         val account = attributes["kakao_account"] as? Map<*, *>
         val profile = account?.get("profile") as? Map<*, *>
         return SocialProfile(
-            provider = provider.lowercase(),
+            provider = OAuth2Provider.KAKAO.registrationId,
             providerUserId = providerUserId,
-            email = (account?.get("email") ?: attributes["email"]) as? String,
-            profileImageUrl = (profile?.get("profile_image_url") ?: attributes["picture"]) as? String,
+            email = account?.get("email") as? String,
+            profileImageUrl = profile?.get("profile_image_url") as? String,
+        )
+    }
+
+    private fun extractGoogleProfile(attributes: Map<String, Any>): SocialProfile {
+        val providerUserId = requireNotNull(attributes["sub"]).toString()
+        return SocialProfile(
+            provider = OAuth2Provider.GOOGLE.registrationId,
+            providerUserId = providerUserId,
+            email = attributes["email"] as? String,
+            profileImageUrl = attributes["picture"] as? String,
+        )
+    }
+
+    private fun extractAppleProfile(attributes: Map<String, Any>): SocialProfile {
+        val providerUserId = requireNotNull(attributes["sub"]).toString()
+        return SocialProfile(
+            provider = OAuth2Provider.APPLE.registrationId,
+            providerUserId = providerUserId,
+            email = attributes["email"] as? String,
+            profileImageUrl = null,
         )
     }
 

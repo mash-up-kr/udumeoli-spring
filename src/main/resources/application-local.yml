@@ -8,3 +8,16 @@ spring:
     console:
       enabled: true
       path: /h2-console
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: "test-kakao-client-id"
+            client-secret: "test-kakao-client-secret"
+          google:
+            client-id: "test-google-client-id"
+            client-secret: "test-google-client-secret"
+          apple:
+            client-id: "test-apple-client-id"
+            client-secret: "test-apple-client-secret"

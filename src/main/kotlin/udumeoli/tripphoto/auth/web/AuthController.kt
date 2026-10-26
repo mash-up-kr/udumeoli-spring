@@ -9,27 +9,57 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import udumeoli.tripphoto.auth.dto.AppleLoginRequest
 import udumeoli.tripphoto.auth.dto.AuthErrorResponse
 import udumeoli.tripphoto.auth.dto.CompleteSignupRequest
 import udumeoli.tripphoto.auth.dto.ExchangeLoginCodeRequest
+import udumeoli.tripphoto.auth.dto.GoogleLoginRequest
+import udumeoli.tripphoto.auth.dto.KakaoLoginRequest
 import udumeoli.tripphoto.auth.dto.LoginCodeExchangeResponse
 import udumeoli.tripphoto.auth.dto.LogoutRequest
 import udumeoli.tripphoto.auth.dto.RefreshAccessTokenRequest
 import udumeoli.tripphoto.auth.dto.SignupImageUploadUrlRequest
 import udumeoli.tripphoto.auth.dto.TokenResponse
+import udumeoli.tripphoto.auth.entity.OAuth2Provider
 import udumeoli.tripphoto.auth.service.AuthException
 import udumeoli.tripphoto.auth.service.AuthService
+import udumeoli.tripphoto.auth.service.SocialLoginService
 import udumeoli.tripphoto.image.dto.ImageUploadTarget
 
 @RestController
 @RequestMapping("/api/auth")
 class AuthController(
     private val authService: AuthService,
+    private val socialLoginService: SocialLoginService,
 ) {
     @PostMapping("/exchange")
     fun exchange(
         @Valid @RequestBody request: ExchangeLoginCodeRequest,
     ): LoginCodeExchangeResponse = authService.exchangeLoginCode(request.code)
+
+    @PostMapping("/login/kakao")
+    fun kakaoLogin(
+        @Valid @RequestBody request: KakaoLoginRequest,
+    ): LoginCodeExchangeResponse {
+        val code = socialLoginService.validateAndLogin(OAuth2Provider.KAKAO, request.accessToken)
+        return authService.exchangeLoginCode(code)
+    }
+
+    @PostMapping("/login/google")
+    fun googleLogin(
+        @Valid @RequestBody request: GoogleLoginRequest,
+    ): LoginCodeExchangeResponse {
+        val code = socialLoginService.validateAndLogin(OAuth2Provider.GOOGLE, request.idToken)
+        return authService.exchangeLoginCode(code)
+    }
+
+    @PostMapping("/login/apple")
+    fun appleLogin(
+        @Valid @RequestBody request: AppleLoginRequest,
+    ): LoginCodeExchangeResponse {
+        val code = socialLoginService.validateAndLogin(OAuth2Provider.APPLE, request.identityToken)
+        return authService.exchangeLoginCode(code)
+    }
 
     @PostMapping("/signup")
     fun signup(

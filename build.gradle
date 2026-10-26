@@ -61,6 +61,21 @@ dependencies {
 	runtimeOnly 'com.oracle.database.security:osdt_core'
 	runtimeOnly 'com.oracle.database.security:osdt_cert'
 
+	// Google ID Token 검증
+	// NetHttpTransport를 사용하므로 Apache HTTP 전송 계층은 필요 없다.
+	// 함께 들어오는 commons-logging은 spring-jcl과 동일한 클래스를 제공해 Native Image 초기화를 충돌시킨다.
+	implementation('com.google.api-client:google-api-client:2.2.0') {
+		exclude group: 'com.google.http-client', module: 'google-http-client-apache-v2'
+		exclude group: 'org.apache.httpcomponents', module: 'httpclient'
+		exclude group: 'org.apache.httpcomponents', module: 'httpcore'
+		exclude group: 'commons-logging', module: 'commons-logging'
+	}
+
+	// JWT 파싱 및 검증 (Apple Identity Token)
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
+	implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
+	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.3'
+
 	testImplementation 'io.mockk:mockk:1.13.13'
 }
 

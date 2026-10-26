@@ -15,6 +15,15 @@ spring:
             client-id: "${KAKAO_CLIENT_ID}"
             client-secret: "${KAKAO_CLIENT_SECRET}"
 
+# Apple의 form_post 콜백은 교차 사이트 POST이므로 OAuth state를 담은 세션 쿠키가 함께 전송되어야 한다.
+# 운영은 HTTPS nginx 뒤에서 동작하므로 SameSite=None에 필요한 Secure를 함께 적용한다.
+server:
+  servlet:
+    session:
+      cookie:
+        same-site: none
+        secure: true
+
 javax:
   net:
     ssl:

@@ -84,7 +84,7 @@ class SecurityConfig {
 
     @Bean
     fun corsConfigurationSource(properties: AuthProperties): CorsConfigurationSource {
-        val configuration =
+        val defaultConfiguration =
             CorsConfiguration().apply {
                 allowedOrigins = properties.corsAllowedOrigins
                 allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
@@ -93,7 +93,20 @@ class SecurityConfig {
                 allowCredentials = true
                 maxAge = 3600
             }
-        return UrlBasedCorsConfigurationSource().apply { registerCorsConfiguration("/**", configuration) }
+        val appleCallbackConfiguration =
+            CorsConfiguration().apply {
+                allowedOrigins = listOf(APPLE_AUTHORIZATION_ORIGIN)
+                allowedMethods = listOf("POST")
+                allowedHeaders = listOf("Content-Type")
+                allowCredentials = true
+                maxAge = 3600
+            }
+
+        return UrlBasedCorsConfigurationSource().apply {
+            // Apple은 scope(name, email) 요청 시 form_post로 콜백하므로 해당 경로에서만 Apple origin을 허용한다.
+            registerCorsConfiguration(APPLE_CALLBACK_PATH, appleCallbackConfiguration)
+            registerCorsConfiguration("/**", defaultConfiguration)
+        }
     }
 
     private fun jwtAuthenticationConverter(): JwtAuthenticationConverter =
@@ -113,5 +126,10 @@ class SecurityConfig {
         response.status = status
         response.contentType = MediaType.APPLICATION_JSON_VALUE
         objectMapper.writeValue(response.outputStream, AuthErrorResponse(code, message))
+    }
+
+    companion object {
+        private const val APPLE_AUTHORIZATION_ORIGIN = "https://appleid.apple.com"
+        private const val APPLE_CALLBACK_PATH = "/login/oauth2/code/apple"
     }
 }

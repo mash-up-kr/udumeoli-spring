@@ -8,6 +8,7 @@ enum class AuthErrorCode {
     INVALID_TOKEN,
     SIGNUP_ALREADY_COMPLETED,
     USER_NOT_FOUND,
+    EXTERNAL_API_ERROR,
 }
 
 class AuthException(

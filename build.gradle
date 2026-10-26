@@ -61,6 +61,14 @@ dependencies {
 	runtimeOnly 'com.oracle.database.security:osdt_core'
 	runtimeOnly 'com.oracle.database.security:osdt_cert'
 
+	// Google ID Token 검증
+	implementation 'com.google.api-client:google-api-client:2.2.0'
+
+	// JWT 파싱 및 검증 (Apple Identity Token)
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
+	implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
+	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.3'
+
 	testImplementation 'io.mockk:mockk:1.13.13'
 }
 

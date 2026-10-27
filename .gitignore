@@ -46,3 +46,8 @@ out/
 .env
 *.zip
 wallet/
+
+### Logs ###
+logs/
+*.log
+*.log.gz

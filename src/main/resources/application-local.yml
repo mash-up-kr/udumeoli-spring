@@ -21,3 +21,11 @@ spring:
           apple:
             client-id: "test-apple-client-id"
             client-secret: "test-apple-client-secret"
+
+logging:
+  file:
+    path: "${LOG_PATH:./logs}"
+  level:
+    root: INFO
+    udumeoli.tripphoto: DEBUG
+    org.springframework.jdbc.core: DEBUG

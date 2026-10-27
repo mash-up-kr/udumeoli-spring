@@ -44,3 +44,10 @@ auth:
   jwt:
     secret: "${JWT_SECRET}"
   frontend-callback-url: "${FRONTEND_LOGIN_CALLBACK_URL:https://www.pinnned.co.kr/login/callback}"
+
+logging:
+  file:
+    path: "${LOG_PATH:/app/logs}"
+  level:
+    root: INFO
+    udumeoli.tripphoto: INFO

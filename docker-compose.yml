@@ -11,6 +11,9 @@ services:
       TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: dev
       LOG_PATH: /app/logs
+      FIREBASE_REMOTE_CONFIG_ENABLED: ${FIREBASE_REMOTE_CONFIG_ENABLED:-false}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+      FIREBASE_CREDENTIALS_PATH: ${FIREBASE_CREDENTIALS_PATH:-}
       # 비밀번호는 같은 폴더의 .env 에서 주입 (git 에는 커밋 금지)
       DB_PASSWORD: ${DB_PASSWORD}
       WALLET_PASSWORD: ${WALLET_PASSWORD}
@@ -51,6 +54,8 @@ services:
       - /opt/oracle/wallet:/opt/oracle/wallet:ro
       # 컨테이너 내 로그 파일 보존을 위한 호스트 볼륨 마운트
       - ./logs:/app/logs
+      # 서비스 계정 키는 추후 ./secrets/firebase-service-account.json에 배치한다.
+      - ./secrets:/app/secrets:ro
     logging:
       driver: "json-file"
       options:

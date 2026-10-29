@@ -6,5 +6,6 @@ build/
 .github/
 README.md
 .env
+secrets/
 *.log
 HELP.md

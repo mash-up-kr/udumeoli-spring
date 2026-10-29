@@ -71,6 +71,17 @@ dependencies {
 		exclude group: 'commons-logging', module: 'commons-logging'
 	}
 
+	// Remote Config 서버 조건/비율 평가. 사용하지 않는 Cloud 서비스는 제외한다.
+	implementation('com.google.firebase:firebase-admin:9.11.0') {
+		exclude group: 'com.google.cloud', module: 'google-cloud-firestore'
+		exclude group: 'com.google.cloud', module: 'google-cloud-storage'
+		exclude group: 'commons-logging', module: 'commons-logging'
+		exclude group: 'org.apache.httpcomponents', module: 'httpclient'
+		exclude group: 'com.google.http-client', module: 'google-http-client-apache-v2'
+	}
+	// Firebase Remote Config는 내부적으로 JacksonFactory를 사용한다.
+	implementation 'com.google.http-client:google-http-client-jackson2:2.2.0'
+
 	// JWT 파싱 및 검증 (Apple Identity Token)
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
 	implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
@@ -118,6 +129,10 @@ graalvmNative {
 	binaries {
 		main {
 			imageName = 'udumeoli'
+		}
+		test {
+			// Kotlin 1.9의 테스트 메타데이터가 참조하는 불변 enum. 테스트 이미지에만 적용한다.
+			buildArgs.add('--initialize-at-build-time=kotlin.annotation.AnnotationRetention,kotlin.annotation.AnnotationTarget')
 		}
 	}
 }

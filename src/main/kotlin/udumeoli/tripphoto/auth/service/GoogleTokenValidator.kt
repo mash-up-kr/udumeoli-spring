@@ -11,13 +11,28 @@ import udumeoli.tripphoto.auth.entity.OAuth2Provider
 @Component
 class GoogleTokenValidator(
     @Value("\${spring.security.oauth2.client.registration.google.client-id}")
-    private val googleClientId: String,
+    private val googleWebClientId: String,
+    @Value("\${auth.platforms.android.google-client-id:}")
+    private val googleAndroidClientId: String?,
+    @Value("\${auth.platforms.ios.google-client-id:}")
+    private val googleIosClientId: String?,
 ) : SocialTokenValidator {
-    private val verifier =
-        GoogleIdTokenVerifier
-            .Builder(NetHttpTransport(), GsonFactory.getDefaultInstance())
-            .setAudience(listOf(googleClientId))
-            .build()
+    private val verifier: GoogleIdTokenVerifier
+
+    init {
+        val audiences =
+            buildList {
+                add(googleWebClientId)
+                googleAndroidClientId?.takeIf { it.isNotBlank() }?.let { add(it) }
+                googleIosClientId?.takeIf { it.isNotBlank() }?.let { add(it) }
+            }
+
+        verifier =
+            GoogleIdTokenVerifier
+                .Builder(NetHttpTransport(), GsonFactory.getDefaultInstance())
+                .setAudience(audiences)
+                .build()
+    }
 
     override fun supports(provider: OAuth2Provider): Boolean = provider == OAuth2Provider.GOOGLE
 

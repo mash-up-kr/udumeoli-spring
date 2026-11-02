@@ -14,6 +14,7 @@ data class AuthProperties(
     // /oauth2/authorization/{registrationId} 요청의 frontendRedirect 쿼리파라미터가 이 목록에 있을 때만 허용한다.
     val allowedFrontendCallbackUrls: List<String> = emptyList(),
     val corsAllowedOrigins: List<String> = emptyList(),
+    val platforms: PlatformProperties = PlatformProperties(),
 ) {
     data class JwtProperties(
         val issuer: String,
@@ -21,5 +22,15 @@ data class AuthProperties(
         val accessTokenTtl: Duration = Duration.ofMinutes(30),
         val refreshTokenTtl: Duration = Duration.ofDays(14),
         val signupTokenTtl: Duration = Duration.ofMinutes(10),
+    )
+
+    data class PlatformProperties(
+        val android: PlatformClientIds = PlatformClientIds(),
+        val ios: PlatformClientIds = PlatformClientIds(),
+    )
+
+    data class PlatformClientIds(
+        val googleClientId: String? = null,
+        val appleClientId: String? = null, // iOS only, Android는 Apple Sign In 미지원
     )
 }

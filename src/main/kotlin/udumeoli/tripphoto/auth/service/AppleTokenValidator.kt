@@ -18,13 +18,26 @@ import java.util.Base64
 @Component
 class AppleTokenValidator(
     @Value("\${spring.security.oauth2.client.registration.apple.client-id}")
-    private val appleClientId: String,
+    private val appleWebClientId: String,
+    @Value("\${auth.platforms.ios.apple-client-id:}")
+    private val appleIosClientId: String?,
     private val objectMapper: ObjectMapper,
     private val restTemplate: RestTemplate = RestTemplate(),
 ) : SocialTokenValidator {
     companion object {
         private const val APPLE_PUBLIC_KEYS_URL = "https://appleid.apple.com/auth/keys"
         private const val APPLE_ISSUER = "https://appleid.apple.com"
+    }
+
+    private val allowedAudiences: Set<String>
+
+    init {
+        // Apple Sign In은 iOS만 공식 지원 (Android는 없음)
+        allowedAudiences =
+            buildSet {
+                add(appleWebClientId)
+                appleIosClientId?.takeIf { it.isNotBlank() }?.let { add(it) }
+            }
     }
 
     override fun supports(provider: OAuth2Provider): Boolean = provider == OAuth2Provider.APPLE
@@ -34,14 +47,26 @@ class AppleTokenValidator(
 
         val claims =
             try {
-                Jwts
-                    .parser()
-                    .verifyWith(publicKey as java.security.interfaces.RSAPublicKey)
-                    .requireIssuer(APPLE_ISSUER)
-                    .requireAudience(appleClientId)
-                    .build()
-                    .parseSignedClaims(token)
-                    .payload
+                val parsedClaims =
+                    Jwts
+                        .parser()
+                        .verifyWith(publicKey as java.security.interfaces.RSAPublicKey)
+                        .requireIssuer(APPLE_ISSUER)
+                        .build()
+                        .parseSignedClaims(token)
+                        .payload
+
+                // Audience 직접 검증 (여러 audience 지원)
+                val audience = parsedClaims.audience?.firstOrNull()
+                if (audience == null || !allowedAudiences.contains(audience)) {
+                    throw AuthException(
+                        AuthErrorCode.INVALID_TOKEN,
+                        HttpStatus.UNAUTHORIZED,
+                        "Invalid audience: $audience",
+                    )
+                }
+
+                parsedClaims
             } catch (e: JwtException) {
                 throw AuthException(
                     AuthErrorCode.INVALID_TOKEN,

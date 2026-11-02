@@ -56,13 +56,15 @@ class AppleTokenValidator(
                         .parseSignedClaims(token)
                         .payload
 
-                // Audience 직접 검증 (여러 audience 지원)
-                val audience = parsedClaims.audience?.firstOrNull()
-                if (audience == null || !allowedAudiences.contains(audience)) {
+                val tokenAudiences = parsedClaims.audience ?: emptySet()
+                val hasValidAudience = tokenAudiences.any { it in allowedAudiences }
+
+                if (!hasValidAudience) {
                     throw AuthException(
                         AuthErrorCode.INVALID_TOKEN,
                         HttpStatus.UNAUTHORIZED,
-                        "Invalid audience: $audience",
+                        "Invalid audience: ${tokenAudiences.joinToString(", ")}. " +
+                                "Expected one of: ${allowedAudiences.joinToString(", ")}",
                     )
                 }
 

@@ -28,7 +28,8 @@ services:
       # OAuth2 - Apple
       APPLE_CLIENT_ID: ${APPLE_CLIENT_ID}
       APPLE_CLIENT_SECRET: ${APPLE_CLIENT_SECRET}
-      APPLE_IOS_BUNDLE_ID: ${APPLE_IOS_BUNDLE_ID:-}
+      APPLE_IOS_CLIENT_ID: ${APPLE_IOS_CLIENT_ID}
+
       # JWT
       JWT_SECRET: ${JWT_SECRET}
       # Frontend Callback

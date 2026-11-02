@@ -24,6 +24,13 @@ server:
         same-site: none
         secure: true
 
+firebase:
+  remote-config:
+    enabled: "${FIREBASE_REMOTE_CONFIG_ENABLED:false}"
+    project-id: "${FIREBASE_PROJECT_ID:}"
+    credentials-path: "${FIREBASE_CREDENTIALS_PATH:}"
+    refresh-interval: 5m
+
 javax:
   net:
     ssl:

@@ -119,5 +119,9 @@ graalvmNative {
 		main {
 			imageName = 'udumeoli'
 		}
+		test {
+			// Kotlin 테스트 메타데이터의 불변 enum. 배포용 바이너리에는 적용하지 않는다.
+			buildArgs.add('--initialize-at-build-time=kotlin.annotation.AnnotationRetention,kotlin.annotation.AnnotationTarget')
+		}
 	}
 }

@@ -186,6 +186,13 @@ type Mutation {
     [정책] 삭제 결과 아무 기록도 남지 않으면 핀이 지도에서 사라지고 null을 반환한다.
     """
     deleteTripRecord(tripId: ID!): Trip
+
+    """
+    서비스 피드백 전송 (마이페이지 > 서비스 피드백 보내기). 성공 시 true.
+    유저는 토큰으로 식별하고 전송 시각은 서버가 기록한다.
+    rating이 1~5를 벗어나거나 content가 공백 제외 1자 미만 / 5,000자 초과면 VALIDATION_ERROR.
+    """
+    submitFeedback(input: SubmitFeedbackInput!): Boolean!
 }
 
 "서비스 사용자. 팟/여행 문맥과 무관한 전역 프로필."
@@ -359,6 +366,17 @@ input UpdateProfileInput {
     nickname: String!
     "미전달(null) 시 기존 값 유지. 프리셋 아바타 코드(1~4) 또는 업로드한 사진의 imageId."
     profileImage: ID
+}
+
+input SubmitFeedbackInput {
+    "만족도 별점 1~5"
+    rating: Int!
+    "의견 본문. 앞뒤 공백을 뺀 1~5,000자. 서버도 trim 후 검증·저장한다."
+    content: String!
+    "앱 버전. 예: \"v 1.0.0\""
+    appVersion: String!
+    "OS/기기 정보 (navigator.userAgent 원문). 1,000자를 넘으면 잘라서 저장한다."
+    deviceInfo: String!
 }
 
 input KickMemberInput {

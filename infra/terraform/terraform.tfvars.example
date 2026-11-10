@@ -1,0 +1,18 @@
+# 복사해서 terraform.tfvars 로 저장 후 실제 값 채우기 (terraform.tfvars 는 git에 커밋하지 말 것)
+
+region          = "ap-chuncheon-1"
+tenancy_ocid    = "ocid1.tenancy.oc1..xxxxxxxx"
+compartment_id  = "ocid1.compartment.oc1..xxxxxxxx"
+
+ssh_public_key             = "ssh-ed25519 AAAA... your-key"
+deploy_user_ssh_public_key = "" # 비우면 ssh_public_key 와 동일 키 사용
+
+# apply 전에 아래 두 이미지 OCID를 신규 테넌시/리전 기준으로 재확인할 것:
+#   oci compute image list --compartment-id <root-ocid> --operating-system "Canonical Ubuntu" --operating-system-version "24.04" --region ap-chuncheon-1
+#   oci compute image list --compartment-id <root-ocid> --operating-system "Oracle Linux" --operating-system-version "9" --region ap-chuncheon-1
+app_image_ocid       = "ocid1.image.oc1.ap-chuncheon-1.xxxxxxxx"
+thumbnail_image_ocid = "ocid1.image.oc1.ap-chuncheon-1.xxxxxxxx"
+
+adb_admin_password = "새로-발급한-강력한-비밀번호"
+
+object_storage_namespace = "새-테넌시-네임스페이스" # 콘솔 Object Storage 개요에서 확인

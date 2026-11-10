@@ -52,3 +52,11 @@ wallet/
 logs/
 *.log
 *.log.gz
+
+### Terraform (절대 커밋 금지: tfvars/state에 비밀번호·OCID 포함) ###
+infra/terraform/.terraform/
+infra/terraform/.terraform.lock.hcl
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+infra/terraform/terraform.tfvars
+infra/terraform/*.auto.tfvars

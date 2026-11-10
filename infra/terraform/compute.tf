@@ -18,7 +18,7 @@ resource "oci_core_instance" "app" {
 
   source_details {
     source_type             = "image"
-    source_id               = var.app_image_ocid
+    source_id               = coalesce(var.app_image_ocid, data.oci_core_images.ubuntu.images[0].id)
     boot_volume_size_in_gbs = var.app_boot_volume_size_in_gbs
   }
 
@@ -56,7 +56,7 @@ resource "oci_core_instance" "thumbnail" {
 
   source_details {
     source_type = "image"
-    source_id   = var.thumbnail_image_ocid
+    source_id   = coalesce(var.thumbnail_image_ocid, data.oci_core_images.oraclelinux.images[0].id)
   }
 
   metadata = {
@@ -70,4 +70,22 @@ resource "oci_core_instance" "thumbnail" {
 
 data "oci_identity_availability_domains" "ads" {
   compartment_id = var.tenancy_ocid
+}
+
+data "oci_core_images" "ubuntu" {
+  compartment_id           = var.compartment_id
+  operating_system         = "Canonical Ubuntu"
+  operating_system_version = "24.04"
+  shape                    = var.app_instance_shape
+  sort_by                  = "TIMECREATED"
+  sort_order               = "DESC"
+}
+
+data "oci_core_images" "oraclelinux" {
+  compartment_id           = var.compartment_id
+  operating_system         = "Oracle Linux"
+  operating_system_version = "9"
+  shape                    = var.thumbnail_instance_shape
+  sort_by                  = "TIMECREATED"
+  sort_order               = "DESC"
 }

@@ -1,7 +1,7 @@
 variable "region" {
-  description = "OCI region. 기존 서버와 동일 리전: ap-chuncheon-1 (South Korea North)"
+  description = "OCI region. 신규 테넌시의 홈 리전을 사용 (테넌시 생성 시 고정됨)"
   type        = string
-  default     = "ap-chuncheon-1"
+  default     = "ap-tokyo-1"
 }
 
 variable "tenancy_ocid" {
@@ -43,15 +43,16 @@ variable "app_memory_in_gbs" {
 }
 
 variable "app_boot_volume_size_in_gbs" {
-  type    = number
-  default = 47
+  description = "부트 볼륨 크기(GB). 기존 서버는 47GB였지만 이 테넌시 최소 요구치가 50GB라 50으로 올림"
+  type        = number
+  default     = 50
 }
 
-# Canonical-Ubuntu-24.04 이미지 OCID는 리전마다 다르므로 실제 apply 전에
-# `oci compute image list --operating-system "Canonical Ubuntu" --operating-system-version "24.04"` 로 재확인할 것
+# 비워두면 data.oci_core_images 로 해당 리전의 최신 Ubuntu 24.04 이미지를 자동 조회함
 variable "app_image_ocid" {
-  description = "Ubuntu 24.04 이미지 OCID (리전별로 다름, apply 전 재확인 필요)"
+  description = "Ubuntu 24.04 이미지 OCID. 비워두면 자동 조회"
   type        = string
+  default     = null
 }
 
 # --- Compute: Thumbnail 서버 ---
@@ -71,10 +72,11 @@ variable "thumbnail_memory_in_gbs" {
   default = 1
 }
 
-# Oracle-Linux-9.7 이미지 OCID도 리전마다 다름, apply 전 재확인 필요
+# 비워두면 data.oci_core_images 로 해당 리전의 최신 Oracle Linux 9 이미지를 자동 조회함
 variable "thumbnail_image_ocid" {
-  description = "Oracle Linux 9.7 이미지 OCID (리전별로 다름, apply 전 재확인 필요)"
+  description = "Oracle Linux 9 이미지 OCID. 비워두면 자동 조회"
   type        = string
+  default     = null
 }
 
 # --- Autonomous Database ---
@@ -90,14 +92,14 @@ variable "adb_admin_password" {
   sensitive   = true
 }
 
-variable "adb_acl_ips" {
-  description = "ATP 접근 허용 IP 목록. 기존: 134.185.123.123(thumbnail), 175.127.232.64(관리자 IP로 추정) - 새 서버 IP 확정 후 갱신 필요"
+variable "adb_acl_extra_ips" {
+  description = "앱/썸네일 서버 외에 ATP 접근을 추가로 허용할 IP (예: 관리자 자택/사무실 IP). 새 앱·썸네일 서버 IP는 자동으로 포함됨"
   type        = list(string)
-  default     = ["134.185.123.123", "175.127.232.64"]
+  default     = []
 }
 
 variable "adb_acl_cidrs" {
-  description = "ATP 접근 허용 CIDR. 기존 설정은 0.0.0.0/0 (사실상 전체 허용) 이었음 - 이전 시 더 좁히는 것을 권장"
+  description = "ATP 접근 허용 CIDR. 기존 설정은 0.0.0.0/0 (사실상 전체 허용) 이었음 - 보안 강화를 원하면 빈 리스트로 좁히고 adb_acl_extra_ips/앱 서버 IP만 허용"
   type        = list(string)
   default     = ["0.0.0.0/0"]
 }
@@ -110,6 +112,7 @@ variable "object_storage_bucket_name" {
 }
 
 variable "object_storage_namespace" {
-  description = "테넌시 Object Storage 네임스페이스 (OCI 콘솔 Object Storage 개요 화면에서 확인)"
+  description = "테넌시 Object Storage 네임스페이스. 비워두면 data.oci_objectstorage_namespace 로 자동 조회"
   type        = string
+  default     = null
 }

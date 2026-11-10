@@ -14,6 +14,10 @@ resource "oci_database_autonomous_database" "udumeolidb2" {
   # 기존 설정: mTLS 필수 + ACL(특정 IP 목록 + 0.0.0.0/0)
   is_mtls_connection_required = true
 
-  # IP와 CIDR을 함께 받는 단순 list(string) 속성
-  whitelisted_ips = concat(var.adb_acl_ips, var.adb_acl_cidrs)
+  # 새 앱/썸네일 서버의 실제 Public IP를 자동으로 포함 (기존 테넌시의 IP는 새 환경과 무관하므로 미사용)
+  whitelisted_ips = concat(
+    [oci_core_instance.app.public_ip, oci_core_instance.thumbnail.public_ip],
+    var.adb_acl_extra_ips,
+    var.adb_acl_cidrs,
+  )
 }

@@ -1,5 +1,7 @@
 package udumeoli.tripphoto.config
 
+import com.google.api.client.auth.openidconnect.IdToken
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken
 import org.springframework.aot.hint.MemberCategory
 import org.springframework.aot.hint.RuntimeHints
 import org.springframework.aot.hint.RuntimeHintsRegistrar
@@ -14,6 +16,7 @@ class ApplicationNativeHints : RuntimeHintsRegistrar {
     ) {
         registerFlywayHints(hints, classLoader)
         registerJjwtHints(hints, classLoader)
+        registerGoogleIdTokenHints(hints)
         registerRemoteConfigHints(hints, classLoader)
     }
 
@@ -97,6 +100,16 @@ class ApplicationNativeHints : RuntimeHintsRegistrar {
         }
         hints.resources().registerPattern("META-INF/services/io.jsonwebtoken.io.Serializer")
         hints.resources().registerPattern("META-INF/services/io.jsonwebtoken.io.Deserializer")
+    }
+
+    /** Google 로그인 파서는 Payload를 생성하고 상속 계층의 @Key 필드에 값을 채운다. */
+    private fun registerGoogleIdTokenHints(hints: RuntimeHints) {
+        hints.reflection().registerType(
+            GoogleIdToken.Payload::class.java,
+            MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
+            MemberCategory.DECLARED_FIELDS,
+        )
+        hints.reflection().registerType(IdToken.Payload::class.java, MemberCategory.DECLARED_FIELDS)
     }
 
     /** Google HTTP Client의 @Key 필드, 중첩 응답 DTO와 Firebase SDK 버전 리소스. */

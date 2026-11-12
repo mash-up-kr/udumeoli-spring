@@ -45,6 +45,20 @@ terraform apply
    (리포에 nginx 설정이 없어서 코드화 불가, 기존 서버에서 직접 가져올 것)
 2. **ATP Wallet 다운로드 및 배치** — 콘솔 또는 `oci db autonomous-database generate-wallet` 로 다운로드 후
    새 서버의 `/opt/oracle/wallet` 에 업로드 (cloud-init으로 디렉토리는 미리 생성해둠)
+   ⚠️ **콘솔에서 새로 받은 Wallet의 `ojdbc.properties`는 JKS 설정이 기본적으로 주석처리되어 있고
+   `oracle.net.wallet_location=(...METHOD=FILE...)` 가 활성화돼 있음.** 이 상태로 두면 드라이버가
+   `cwallet.sso` 기반 SSO 자동로그인 방식을 시도하다가 `KeyStoreException: SSO not found` /
+   `NoSuchAlgorithmException: SSO KeyStore not available` 로 접속이 실패한다 (native 이미지에서
+   SSO KeyStore 프로바이더가 등록되어 있지 않음). 반드시 아래처럼 JKS 모드로 명시 설정할 것:
+   ```
+   javax.net.ssl.trustStore=/opt/oracle/wallet/truststore.jks
+   javax.net.ssl.trustStoreType=JKS
+   javax.net.ssl.trustStorePassword=<wallet 비밀번호>
+   javax.net.ssl.keyStore=/opt/oracle/wallet/keystore.jks
+   javax.net.ssl.keyStoreType=JKS
+   javax.net.ssl.keyStorePassword=<wallet 비밀번호>
+   oracle.net.ssl_server_dn_match=true
+   ```
 3. **`/home/deploy/app/.env` 작성** — `DB_PASSWORD`, `WALLET_PASSWORD`, OAuth 키, `JWT_SECRET`,
    `KMS_MASTER_KEY`, Object Storage 키 등 ([docker-compose.yml](../../docker-compose.yml) 참고)
 4. **데이터 이전** — 기존 ATP의 운영 데이터가 있다면 Data Pump Export/Import, Object Storage 버킷 데이터는

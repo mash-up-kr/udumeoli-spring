@@ -2,19 +2,33 @@
 
 package udumeoli.tripphoto.trip
 
+import com.sun.net.httpserver.HttpServer
+import org.assertj.core.api.Assertions.assertThat
+import org.awaitility.Awaitility.await
+import org.hamcrest.Matchers.startsWith
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.system.CapturedOutput
+import org.springframework.boot.test.system.OutputCaptureExtension
 import org.springframework.graphql.ExecutionGraphQlService
 import org.springframework.graphql.test.tester.ExecutionGraphQlServiceTester
 import org.springframework.security.authentication.TestingAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.context.bean.override.mockito.MockitoBean
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.get
 import udumeoli.tripphoto.image.entity.Image
 import udumeoli.tripphoto.image.repository.ImageRepository
 import udumeoli.tripphoto.image.storage.S3StorageAdapter
@@ -25,13 +39,19 @@ import udumeoli.tripphoto.trip.repository.TripRecordRepository
 import udumeoli.tripphoto.trip.repository.TripRepository
 import udumeoli.tripphoto.user.entity.ServiceUser
 import udumeoli.tripphoto.user.repository.ServiceUserRepository
+import java.net.InetSocketAddress
+import java.time.Duration
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /**
  * 스키마에 선언된 Query/Mutation을 실제 문서로 한 번씩 태워 본다.
  * 필드 이름·인자 타입·nullability가 코드와 어긋나면 여기서 깨진다.
  */
 @SpringBootTest
+@AutoConfigureMockMvc
 @ActiveProfiles("local")
+@ExtendWith(OutputCaptureExtension::class)
 class TripGraphQlSchemaSmokeTest {
     @Autowired lateinit var graphQlService: ExecutionGraphQlService
 
@@ -48,6 +68,8 @@ class TripGraphQlSchemaSmokeTest {
     @Autowired lateinit var tripImageRepository: TripImageRepository
 
     @Autowired lateinit var imageRepository: ImageRepository
+
+    @Autowired lateinit var mockMvc: MockMvc
 
     @MockitoBean lateinit var storageAdapter: S3StorageAdapter
 
@@ -164,6 +186,40 @@ class TripGraphQlSchemaSmokeTest {
             .path("createImageUploadUrl.uploadUrl")
             .entity(String::class.java)
             .isEqualTo("https://upload.example.com/a.jpg?sig=1")
+    }
+
+    @Test
+    fun `썸네일 생성 요청이 타임아웃되어도 여행 기록에 원본 URL을 반환한다`(output: CapturedOutput) {
+        val owner = createUser("업로더")
+        val partyId = createPartyWith(owner)
+        val imageId =
+            graphQlTester(owner)
+                .document("""mutation { createImageUploadUrl(input: { contentType: "image/webp" }) { imageId } }""")
+                .execute()
+                .path("createImageUploadUrl.imageId")
+                .entity(String::class.java)
+                .get()
+                .toLong()
+        val image = imageRepository.findById(imageId).orElseThrow()
+        val originalPath = "/api/images/${image.objectKey}"
+        val originalUrl = "http://localhost:8080$originalPath"
+        val result = graphQlTester(owner).document(createTripDocument(partyId, imageId)).execute()
+        result.path("createTrip.records[0].image.originalUrl").entity(String::class.java).isEqualTo(originalUrl)
+        result.path("createTrip.records[0].image.thumbnailUrl").entity(String::class.java).isEqualTo(originalUrl)
+
+        try {
+            await().atMost(Duration.ofSeconds(5)).until {
+                output.out.contains("imageId=$imageId, cause=SocketTimeoutException")
+            }
+        } finally {
+            releaseThumbnailResponse.countDown()
+        }
+        assertThat(tripImageRepository.findAll()).anyMatch { it.imageId == imageId }
+
+        mockMvc.get(originalPath).andExpect {
+            status { isFound() }
+            header { string("Location", startsWith("/stream/${image.objectKey}?type=original&")) }
+        }
     }
 
     @Test
@@ -612,5 +668,42 @@ class TripGraphQlSchemaSmokeTest {
         return ExecutionGraphQlServiceTester
             .builder(graphQlService)
             .build()
+    }
+
+    companion object {
+        private val releaseThumbnailResponse = CountDownLatch(1)
+        private var thumbnailServer: HttpServer? = null
+
+        @JvmStatic
+        @BeforeAll
+        fun startThumbnailServer() {
+            thumbnailServer =
+                HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0).apply {
+                    createContext("/thumbnail") { exchange ->
+                        exchange.use {
+                            val body = it.requestBody.bufferedReader().use { reader -> reader.readText() }
+                            if (body.contains("/original/a.jpg")) {
+                                releaseThumbnailResponse.await(5, TimeUnit.SECONDS)
+                            }
+                            it.sendResponseHeaders(202, -1)
+                        }
+                    }
+                    start()
+                }
+        }
+
+        @JvmStatic
+        @DynamicPropertySource
+        fun thumbnailProperties(registry: DynamicPropertyRegistry) {
+            registry.add("thumbnail.server-url") { thumbnailServer?.let { "http://127.0.0.1:${it.address.port}" }.orEmpty() }
+            registry.add("spring.http.client.read-timeout") { "500ms" }
+            registry.add("app.api-base-url") { "http://localhost:8080" }
+        }
+
+        @JvmStatic
+        @AfterAll
+        fun stopThumbnailServer() {
+            thumbnailServer?.stop(0)
+        }
     }
 }

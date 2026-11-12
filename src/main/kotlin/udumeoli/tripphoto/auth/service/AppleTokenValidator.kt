@@ -64,7 +64,7 @@ class AppleTokenValidator(
                         AuthErrorCode.INVALID_TOKEN,
                         HttpStatus.UNAUTHORIZED,
                         "Invalid audience: ${tokenAudiences.joinToString(", ")}. " +
-                                "Expected one of: ${allowedAudiences.joinToString(", ")}",
+                            "Expected one of: ${allowedAudiences.joinToString(", ")}",
                     )
                 }
 

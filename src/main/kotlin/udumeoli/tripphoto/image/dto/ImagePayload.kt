@@ -19,10 +19,16 @@ fun Image.toPayload(
     apiBaseUrl: String,
 ): ImagePayload {
     val isLegacy = encryptedKey == null
+    val imageUrl = if (isLegacy) originalUrl else "${apiBaseUrl.trimEnd('/')}/api/images/$objectKey"
     return ImagePayload(
         id = requireNotNull(id),
-        originalUrl = if (isLegacy) originalUrl else "${apiBaseUrl.trimEnd('/')}/api/images/$objectKey",
-        thumbnailUrl = if (isLegacy) thumbnailUrl else "${apiBaseUrl.trimEnd('/')}/api/images/$objectKey/thumbnail",
+        originalUrl = imageUrl,
+        thumbnailUrl =
+            when {
+                thumbnailUrl.isNullOrBlank() -> imageUrl
+                isLegacy -> thumbnailUrl
+                else -> "$imageUrl/thumbnail"
+            },
         uploader = uploader?.toPayload(),
         createdAt = requireNotNull(createdAt),
     )

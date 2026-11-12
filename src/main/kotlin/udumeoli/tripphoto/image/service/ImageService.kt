@@ -1,6 +1,5 @@
 package udumeoli.tripphoto.image.service
 
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import udumeoli.tripphoto.common.graphql.GraphQlDomainException
 import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
@@ -71,8 +70,7 @@ class ImageService(
 
     fun requestThumbnails(images: List<Image>) {
         images.forEach { image ->
-            runCatching { thumbnailAdapter.requestThumbnail(requireNotNull(image.id), image.originalUrl) }
-                .onFailure { log.warn("썸네일 생성 요청 실패: imageId={}", image.id, it) }
+            thumbnailAdapter.requestThumbnail(requireNotNull(image.id), image.originalUrl)
         }
     }
 
@@ -90,8 +88,6 @@ class ImageService(
     }
 
     companion object {
-        private val log = LoggerFactory.getLogger(ImageService::class.java)
-
         private val ALLOWED_CONTENT_TYPES =
             mapOf(
                 "image/jpeg" to "jpg",

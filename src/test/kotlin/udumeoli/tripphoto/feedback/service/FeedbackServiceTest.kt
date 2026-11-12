@@ -78,15 +78,19 @@ class FeedbackServiceTest {
     }
 
     @Test
-    fun `5000자 의견은 통과하고 5001자는 거절한다`() {
+    fun `5000자 의견은 그대로 저장한다`() {
         val saved = slot<Feedback>()
         every { feedbackRepository.save(capture(saved)) } answers { saved.captured }
 
         feedbackService.submit(1L, input(content = "가".repeat(5_000)))
-        assertThat(saved.captured.content).hasSize(5_000)
 
-        assertValidationError { feedbackService.submit(1L, input(content = "가".repeat(5_001))) }
+        assertThat(saved.captured.content).hasSize(5_000)
         verify(exactly = 1) { feedbackRepository.save(any()) }
+    }
+
+    @Test
+    fun `5001자 의견은 저장하지 않고 거절한다`() {
+        assertValidationError { feedbackService.submit(1L, input(content = "가".repeat(5_001))) }
     }
 
     @Test

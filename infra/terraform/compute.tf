@@ -89,3 +89,22 @@ data "oci_core_images" "oraclelinux" {
   sort_by                  = "TIMECREATED"
   sort_order               = "DESC"
 }
+
+# App 서버 Public IP를 Reserved로 전환 (DNS에 넘기기 전에 고정 IP 확보)
+# - 기존 Ephemeral IP는 인스턴스 정지 시 해제될 수 있어 DNS 대상으로 부적합
+# - private_ip_id에 할당하면 생성과 동시에 기존 Ephemeral IP를 대체함
+data "oci_core_vnic_attachments" "app" {
+  compartment_id = var.compartment_id
+  instance_id    = oci_core_instance.app.id
+}
+
+data "oci_core_private_ips" "app" {
+  vnic_id = data.oci_core_vnic_attachments.app.vnic_attachments[0].vnic_id
+}
+
+resource "oci_core_public_ip" "app_reserved" {
+  compartment_id = var.compartment_id
+  display_name   = "udumeoli-app-reserved-ip"
+  lifetime       = "RESERVED"
+  private_ip_id  = data.oci_core_private_ips.app.private_ips[0].id
+}

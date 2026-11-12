@@ -1,6 +1,6 @@
 output "app_public_ip" {
-  description = "새 앱 서버 Public IP. deploy.yml 의 SERVER_HOST secret 과 DNS A 레코드에 이 값을 사용"
-  value       = oci_core_instance.app.public_ip
+  description = "새 앱 서버 Reserved Public IP. deploy.yml 의 SERVER_HOST secret 과 DNS A 레코드에 이 값을 사용 (Ephemeral이 아니라 재부팅/정지에도 바뀌지 않음)"
+  value       = oci_core_public_ip.app_reserved.ip_address
 }
 
 output "thumbnail_public_ip" {

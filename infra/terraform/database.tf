@@ -20,4 +20,9 @@ resource "oci_database_autonomous_database" "udumeolidb2" {
     var.adb_acl_extra_ips,
     var.adb_acl_cidrs,
   )
+
+  # Always Free ADB는 cpu_core_count를 API로 변경 불가(403) - 드리프트 무시
+  lifecycle {
+    ignore_changes = [cpu_core_count]
+  }
 }

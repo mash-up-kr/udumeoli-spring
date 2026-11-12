@@ -73,3 +73,18 @@ terraform apply
 - `VM.Standard.E2.1.Micro` 와 Always Free ATP는 테넌시당 수량 제한이 있음 (ARM이 아닌 기존 세대 Always Free shape)
 - `adb_acl_ips`/`adb_acl_cidrs` 는 기존 설정을 그대로 복사한 것으로, `0.0.0.0/0` 이 포함되어 사실상 전체 허용 상태였음.
   보안 강화를 원하면 새 앱 서버 Public IP 확정 후 CIDR을 좁히는 것을 권장.
+
+## ⚠️ State 파일 관리 (중요)
+
+로컬 PC의 Windows Smart App Control이 terraform 실행 파일을 차단하는 문제로, 결국 **OCI Cloud Shell
+(`~/infra/terraform`)에서 `apply`를 실행**했다. 이 때문에 **`terraform.tfstate`의 최신 원본은 Cloud Shell
+쪽에만 있고, 로컬 저장소의 state는 낡은 채로 남아있다** (`terraform.tfstate.STALE_DO_NOT_USE` 로 이름 변경해둠).
+
+- 로컬에서 실수로 낡은 state로 `apply`하면 이미 떠 있는 리소스를 전부 다시 만들려고 시도해 **서비스 중단**이
+  발생한다 (실제로 한 번 발생: 앱 서버가 destroy된 후 구버전 설정값(부트볼륨 47GB)으로 재생성을 시도하다
+  실패해서 몇 분간 다운됨).
+- **당분간은 Cloud Shell에서만 `plan`/`apply`를 실행할 것.** 로컬에서 작업하려면 반드시 먼저
+  `terraform plan`으로 "N to add"가 과도하게 크지 않은지(기존 리소스를 다시 만들려는 건 아닌지) 확인.
+- 근본적인 해결책은 **원격 backend(OCI Object Storage) 설정** — 로컬/Cloud Shell 어디서 실행하든 같은
+  state를 보게 되어 이런 drift 자체가 발생하지 않는다. 다음 작업으로 `backend "http"` 또는 OCI Object
+  Storage backend 구성을 권장.

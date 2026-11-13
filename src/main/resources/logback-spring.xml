@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration scan="true" scanPeriod="60 seconds">
+<configuration>
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
     <springProperty scope="context" name="LOG_PATH" source="logging.file.path" defaultValue="./logs"/>
@@ -72,4 +72,27 @@
             <appender-ref ref="ERROR_FILE"/>
         </root>
     </springProfile>
+
+    <condition class="ch.qos.logback.core.boolex.ExpressionPropertyCondition">
+        <expression>
+            isDefined("DISCORD_LOG_WEBHOOK_URL")
+            &amp;&amp; !propertyEquals("DISCORD_LOG_WEBHOOK_URL", "")
+            &amp;&amp; !propertyEquals("spring.aot.processing", "true")
+        </expression>
+    </condition>
+    <if>
+        <then>
+            <appender name="DISCORD_WEBHOOK" class="udumeoli.tripphoto.config.logging.DiscordWebhookAppender"/>
+            <appender name="DISCORD_ASYNC" class="ch.qos.logback.classic.AsyncAppender">
+                <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                    <level>WARN</level>
+                </filter>
+                <neverBlock>true</neverBlock>
+                <appender-ref ref="DISCORD_WEBHOOK"/>
+            </appender>
+            <root>
+                <appender-ref ref="DISCORD_ASYNC"/>
+            </root>
+        </then>
+    </if>
 </configuration>

@@ -43,6 +43,8 @@ services:
       STORAGE_PUBLIC_BASE_URL: ${STORAGE_PUBLIC_BASE_URL}
       # Thumbnail
       THUMBNAIL_SERVER_URL: ${THUMBNAIL_SERVER_URL}
+      # Discord logging
+      DISCORD_LOG_WEBHOOK_URL: "${DISCORD_LOG_WEBHOOK_URL:-}"
       # Security
       KMS_MASTER_KEY: ${KMS_MASTER_KEY}
       API_BASE_URL: ${API_BASE_URL}

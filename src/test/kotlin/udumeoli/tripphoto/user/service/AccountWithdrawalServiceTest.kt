@@ -11,6 +11,7 @@ import io.mockk.verifyOrder
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.context.ApplicationEventPublisher
 import udumeoli.tripphoto.auth.repository.RefreshTokenRepository
 import udumeoli.tripphoto.image.service.ImageService
 import udumeoli.tripphoto.party.entity.PartyMember
@@ -29,6 +30,7 @@ class AccountWithdrawalServiceTest {
     private lateinit var serviceUserRepository: ServiceUserRepository
     private lateinit var imageService: ImageService
     private lateinit var refreshTokenRepository: RefreshTokenRepository
+    private lateinit var eventPublisher: ApplicationEventPublisher
     private lateinit var accountWithdrawalService: AccountWithdrawalService
 
     @BeforeEach
@@ -40,6 +42,7 @@ class AccountWithdrawalServiceTest {
         serviceUserRepository = mockk()
         imageService = mockk()
         refreshTokenRepository = mockk()
+        eventPublisher = mockk(relaxed = true)
 
         accountWithdrawalService =
             AccountWithdrawalService(
@@ -50,6 +53,7 @@ class AccountWithdrawalServiceTest {
                 serviceUserRepository = serviceUserRepository,
                 imageService = imageService,
                 refreshTokenRepository = refreshTokenRepository,
+                eventPublisher = eventPublisher,
             )
     }
 

@@ -1,10 +1,13 @@
 package udumeoli.tripphoto.trip.service
 
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import udumeoli.tripphoto.common.graphql.GraphQlDomainException
 import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
+import udumeoli.tripphoto.kpi.entity.KpiEventType
+import udumeoli.tripphoto.kpi.event.KpiEventOccurred
 import udumeoli.tripphoto.party.service.PartyQueryService
 import udumeoli.tripphoto.region.repository.RegionRepository
 import udumeoli.tripphoto.trip.dto.CreateTripInput
@@ -32,6 +35,7 @@ class TripCommandService(
     private val partyQueryService: PartyQueryService,
     private val tripQueryService: TripQueryService,
     private val tripImageWriter: TripImageWriter,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
     @Transactional
     fun createTrip(
@@ -125,5 +129,10 @@ class TripCommandService(
                     ),
             )
         tripImageWriter.setImages(requireNotNull(record.id), listOf(image))
+
+        // 기존 기록의 사진/코멘트 교체는 재호출이라 집계에서 제외한다 — 최초 완료만 TRIP_RECORDED다.
+        if (existing == null) {
+            eventPublisher.publishEvent(KpiEventOccurred(type = KpiEventType.TRIP_RECORDED, serviceUserId = currentUserId))
+        }
     }
 }

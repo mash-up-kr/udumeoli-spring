@@ -2,6 +2,7 @@
 
 package udumeoli.tripphoto.auth.service
 
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -13,6 +14,8 @@ import udumeoli.tripphoto.auth.entity.RefreshToken
 import udumeoli.tripphoto.auth.repository.RefreshTokenRepository
 import udumeoli.tripphoto.image.dto.ImageUploadTarget
 import udumeoli.tripphoto.image.service.ImageService
+import udumeoli.tripphoto.kpi.entity.KpiEventType
+import udumeoli.tripphoto.kpi.event.KpiEventOccurred
 import udumeoli.tripphoto.user.entity.Nickname
 import udumeoli.tripphoto.user.entity.ServiceUser
 import udumeoli.tripphoto.user.entity.SocialAccount
@@ -31,6 +34,7 @@ class AuthService(
     private val jwtTokenService: JwtTokenService,
     private val loginCodeStore: OAuthLoginCodeStore,
     private val imageService: ImageService,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
     fun createSignupImageUploadUrl(
         signupToken: String,
@@ -114,6 +118,13 @@ class AuthService(
                     provider = profile.provider,
                     providerUserId = profile.providerUserId,
                     providerEmail = profile.email,
+                ),
+            )
+            eventPublisher.publishEvent(
+                KpiEventOccurred(
+                    type = KpiEventType.SIGNUP,
+                    serviceUserId = userId,
+                    metadata = """{"provider":"${profile.provider}"}""",
                 ),
             )
             return issueAndStoreTokenPair(userId)

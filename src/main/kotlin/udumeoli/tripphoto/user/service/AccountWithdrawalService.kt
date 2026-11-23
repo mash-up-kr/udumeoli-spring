@@ -2,10 +2,13 @@
 
 package udumeoli.tripphoto.user.service
 
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import udumeoli.tripphoto.auth.repository.RefreshTokenRepository
 import udumeoli.tripphoto.image.service.ImageService
+import udumeoli.tripphoto.kpi.entity.KpiEventType
+import udumeoli.tripphoto.kpi.event.KpiEventOccurred
 import udumeoli.tripphoto.party.repository.PartyMemberRepository
 import udumeoli.tripphoto.party.service.PartyCommandService
 import udumeoli.tripphoto.user.repository.ServiceUserRepository
@@ -25,6 +28,7 @@ class AccountWithdrawalService(
     private val serviceUserRepository: ServiceUserRepository,
     private val imageService: ImageService,
     private val refreshTokenRepository: RefreshTokenRepository,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
     @Transactional
     fun withdraw(currentUserId: Long): Long {
@@ -36,6 +40,7 @@ class AccountWithdrawalService(
         imageService.deleteAllUploadedBy(currentUserId)
         socialAccountRepository.deleteAll(socialAccountRepository.findAllByServiceUserId(currentUserId))
         refreshTokenRepository.deleteAllByServiceUserId(currentUserId)
+        eventPublisher.publishEvent(KpiEventOccurred(type = KpiEventType.WITHDRAWAL, serviceUserId = currentUserId))
         serviceUserRepository.delete(user)
 
         return currentUserId

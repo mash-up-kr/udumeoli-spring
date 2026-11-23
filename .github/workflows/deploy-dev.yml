@@ -1,0 +1,85 @@
+name: Deploy (dev)
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DEV_HOST: ${{ secrets.DEV_SERVER_HOST }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build native Docker image
+        run: |
+          docker build \
+            -t udumeoli-backend:${{ github.sha }} \
+            -t udumeoli-backend:latest \
+            .
+
+      - name: Save image
+        run: docker save udumeoli-backend:latest | gzip > image.tar.gz
+
+      - name: Check image size
+        run: ls -lh image.tar.gz
+
+      - name: Compute archive hash
+        id: hash
+        run: echo "sha256=$(sha256sum image.tar.gz | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      # deploy.sh가 배포 끝에 실제 계정 없이 OAuth2 로그인 경로가 살아있는지 확인하는 데 쓴다.
+      - name: Generate Google login smoke-test token
+        run: python3 ops/deploy/google-token.py > google-token.json
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DEV_SSH_PRIVATE_KEY }}" > ~/.ssh/dev_deploy_key
+          chmod 600 ~/.ssh/dev_deploy_key
+          ssh-keyscan -H "$DEV_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      # 배포 직전 떠 있는 이미지를 미리 읽어둔다 — deploy.sh가 이걸로 드리프트(서버 상태가
+      # 예상과 다름)를 감지한다. 조회만 실패해도(컨테이너가 아예 없는 최초 배포 등) 빈 값으로 통과시킨다.
+      - name: Read currently running image
+        id: current
+        run: |
+          current=$(ssh -i ~/.ssh/dev_deploy_key "deploy@$DEV_HOST" \
+            "docker inspect --format '{{.Image}}' udumeoli-app" 2>/dev/null || true)
+          echo "image=$current" >> "$GITHUB_OUTPUT"
+
+      - name: Stage deploy files on server
+        run: |
+          stage="udumeoli-release-${{ github.sha }}.$RANDOM"
+          echo "STAGE_DIR=/home/deploy/$stage" >> "$GITHUB_ENV"
+          ssh -i ~/.ssh/dev_deploy_key "deploy@$DEV_HOST" "mkdir -p /home/deploy/$stage"
+          scp -i ~/.ssh/dev_deploy_key \
+            image.tar.gz docker-compose.yml google-token.json ops/deploy/deploy.sh \
+            "deploy@$DEV_HOST:/home/deploy/$stage/"
+
+      - name: Run deploy.sh on server
+        run: |
+          ssh -i ~/.ssh/dev_deploy_key "deploy@$DEV_HOST" "
+            chmod +x '$STAGE_DIR/deploy.sh' &&
+            '$STAGE_DIR/deploy.sh' '$STAGE_DIR' '${{ github.sha }}' \
+              '${{ steps.hash.outputs.sha256 }}' '${{ steps.current.outputs.image }}'
+          "
+
+      - name: Clean up stage dir
+        if: always()
+        run: |
+          ssh -i ~/.ssh/dev_deploy_key "deploy@$DEV_HOST" "rm -rf '$STAGE_DIR'" || true
+
+      # 서버 내부(127.0.0.1:8080)는 deploy.sh가 이미 확인했다. 여기서는 nginx+도메인을 거쳐
+      # 외부에서 실제로 서비스되는 경로(HTTPS)까지 살아있는지 한 번 더 본다.
+      - name: Health check (external)
+        run: |
+          curl -f "https://dev-pinnned.duckdns.org/actuator/health" \
+            || (echo "❌ Health check failed" && exit 1)

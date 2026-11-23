@@ -90,7 +90,8 @@ app:
 
 discord:
   # 일일 KPI 리포트(가입/탈퇴/여행 기록 완료)를 보낼 웹훅. 비워두면 전송을 건너뛴다.
-  webhook-url: "${DISCORD_WEBHOOK_URL:}"
+  # DISCORD_LOG_WEBHOOK_URL(WARN/ERROR 로그 알림, logback-spring.xml)과는 별개 채널이다.
+  webhook-url: "${DISCORD_KPI_WEBHOOK_URL:}"
 
 logging:
   file:

@@ -108,3 +108,22 @@ resource "oci_core_public_ip" "app_reserved" {
   lifetime       = "RESERVED"
   private_ip_id  = data.oci_core_private_ips.app.private_ips[0].id
 }
+
+# thumbnail 서버 Public IP도 Reserved로 전환
+# - app과 같은 이유: Ephemeral IP는 정지 시 해제될 수 있어 THUMBNAIL_SERVER_URL / 외부 참조 대상으로 부적합
+# - private_ip_id에 할당하면 생성과 동시에 기존 Ephemeral IP를 대체함 (인스턴스 재생성 불필요)
+data "oci_core_vnic_attachments" "thumbnail" {
+  compartment_id = var.compartment_id
+  instance_id    = oci_core_instance.thumbnail.id
+}
+
+data "oci_core_private_ips" "thumbnail" {
+  vnic_id = data.oci_core_vnic_attachments.thumbnail.vnic_attachments[0].vnic_id
+}
+
+resource "oci_core_public_ip" "thumbnail_reserved" {
+  compartment_id = var.compartment_id
+  display_name   = "udumeoli-thumbnail-reserved-ip"
+  lifetime       = "RESERVED"
+  private_ip_id  = data.oci_core_private_ips.thumbnail.private_ips[0].id
+}

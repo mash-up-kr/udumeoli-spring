@@ -45,6 +45,8 @@ services:
       THUMBNAIL_SERVER_URL: ${THUMBNAIL_SERVER_URL}
       # Discord logging
       DISCORD_LOG_WEBHOOK_URL: "${DISCORD_LOG_WEBHOOK_URL:-}"
+      # 일일 KPI 리포트 디스코드 웹훅. 비워두면 전송을 건너뜀
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
       # Security
       KMS_MASTER_KEY: ${KMS_MASTER_KEY}
       API_BASE_URL: ${API_BASE_URL}

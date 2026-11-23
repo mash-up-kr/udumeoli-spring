@@ -10,6 +10,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.catchThrowable
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.dao.DuplicateKeyException
 import udumeoli.tripphoto.common.graphql.GraphQlDomainException
 import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
@@ -36,6 +37,7 @@ class TripCommandServiceTest {
     private lateinit var partyQueryService: PartyQueryService
     private lateinit var tripQueryService: TripQueryService
     private lateinit var tripImageWriter: TripImageWriter
+    private lateinit var eventPublisher: ApplicationEventPublisher
     private lateinit var tripCommandService: TripCommandService
 
     @BeforeEach
@@ -46,6 +48,7 @@ class TripCommandServiceTest {
         partyQueryService = mockk()
         tripQueryService = mockk()
         tripImageWriter = mockk()
+        eventPublisher = mockk(relaxed = true)
 
         tripCommandService =
             TripCommandService(
@@ -55,6 +58,7 @@ class TripCommandServiceTest {
                 partyQueryService = partyQueryService,
                 tripQueryService = tripQueryService,
                 tripImageWriter = tripImageWriter,
+                eventPublisher = eventPublisher,
             )
 
         every { partyQueryService.requireMember(PARTY_ID, ME) } just Runs

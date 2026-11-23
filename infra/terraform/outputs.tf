@@ -4,7 +4,8 @@ output "app_public_ip" {
 }
 
 output "thumbnail_public_ip" {
-  value = oci_core_instance.thumbnail.public_ip
+  description = "thumbnail 서버 Reserved Public IP (Ephemeral이 아니라 재부팅/정지에도 바뀌지 않음)"
+  value       = oci_core_public_ip.thumbnail_reserved.ip_address
 }
 
 output "adb_connection_strings" {

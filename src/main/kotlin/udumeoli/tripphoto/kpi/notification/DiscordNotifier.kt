@@ -1,10 +1,12 @@
 package udumeoli.tripphoto.kpi.notification
 
 import org.slf4j.LoggerFactory
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 
+@RegisterReflectionForBinding(DiscordMessage::class)
 @Component
 class DiscordNotifier(
     private val properties: DiscordProperties,

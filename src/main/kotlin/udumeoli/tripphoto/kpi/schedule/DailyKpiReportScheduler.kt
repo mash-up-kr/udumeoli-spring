@@ -18,7 +18,7 @@ class DailyKpiReportScheduler(
     private val kpiEventRepository: KpiEventRepository,
     private val discordNotifier: DiscordNotifier,
 ) {
-    @Scheduled(cron = "0 10 0 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 30 0 * * *", zone = "Asia/Seoul")
     fun reportYesterday() {
         val yesterday = LocalDate.now(SEOUL).minusDays(1)
         val start = yesterday.atStartOfDay()

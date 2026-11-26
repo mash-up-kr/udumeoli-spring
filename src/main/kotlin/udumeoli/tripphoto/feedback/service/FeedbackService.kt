@@ -1,11 +1,13 @@
 package udumeoli.tripphoto.feedback.service
 
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import udumeoli.tripphoto.common.graphql.GraphQlDomainException
 import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
 import udumeoli.tripphoto.feedback.dto.SubmitFeedbackInput
 import udumeoli.tripphoto.feedback.entity.Feedback
+import udumeoli.tripphoto.feedback.event.FeedbackSubmitted
 import udumeoli.tripphoto.feedback.repository.FeedbackRepository
 import udumeoli.tripphoto.user.service.UserService
 
@@ -13,6 +15,7 @@ import udumeoli.tripphoto.user.service.UserService
 class FeedbackService(
     private val feedbackRepository: FeedbackRepository,
     private val userService: UserService,
+    private val eventPublisher: ApplicationEventPublisher? = null,
 ) {
     /**
      * 별점 + 의견을 저장한다. 유저는 토큰으로, 전송 시각은 서버가 정한다.
@@ -35,14 +38,16 @@ class FeedbackService(
             throw GraphQlDomainException(GraphQlErrorCode.VALIDATION_ERROR, "의견은 공백 제외 1자 이상 5,000자 이하여야 합니다.")
         }
 
-        feedbackRepository.save(
-            Feedback(
-                serviceUserId = currentUserId,
-                rating = input.rating,
-                content = content,
-                appVersion = input.appVersion.take(Feedback.APP_VERSION_MAX_LENGTH),
-                deviceInfo = input.deviceInfo.take(Feedback.DEVICE_INFO_MAX_LENGTH),
-            ),
-        )
+        val feedback =
+            feedbackRepository.save(
+                Feedback(
+                    serviceUserId = currentUserId,
+                    rating = input.rating,
+                    content = content,
+                    appVersion = input.appVersion.take(Feedback.APP_VERSION_MAX_LENGTH),
+                    deviceInfo = input.deviceInfo.take(Feedback.DEVICE_INFO_MAX_LENGTH),
+                ),
+            )
+        eventPublisher?.publishEvent(FeedbackSubmitted(feedback))
     }
 }

@@ -47,6 +47,8 @@ services:
       DISCORD_LOG_WEBHOOK_URL: "${DISCORD_LOG_WEBHOOK_URL:-}"
       # 일일 KPI 리포트 디스코드 웹훅
       DISCORD_KPI_WEBHOOK_URL: ${DISCORD_KPI_WEBHOOK_URL:-}
+      # 서비스 피드백 디스코드 웹훅
+      DISCORD_FEEDBACK_WEBHOOK_URL: ${DISCORD_FEEDBACK_WEBHOOK_URL:-}
       # Security
       KMS_MASTER_KEY: ${KMS_MASTER_KEY}
       API_BASE_URL: ${API_BASE_URL}

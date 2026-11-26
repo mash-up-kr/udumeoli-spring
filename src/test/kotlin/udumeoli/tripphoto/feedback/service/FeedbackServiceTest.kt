@@ -84,7 +84,7 @@ class FeedbackServiceTest {
 
         feedbackService.submit(1L, input(content = "가".repeat(5_000)))
         assertThat(saved.captured.content).hasSize(5_000)
-        
+
         val thrown = catchThrowable { feedbackService.submit(1L, input(content = "가".repeat(5_001))) }
         assertThat(thrown).isInstanceOf(GraphQlDomainException::class.java)
         assertThat((thrown as GraphQlDomainException).code).isEqualTo(GraphQlErrorCode.VALIDATION_ERROR)

@@ -51,6 +51,7 @@ class DiscordNotifier(
             restClient
                 .post()
                 .uri(webhookUrl)
+                .header("User-Agent", DISCORD_USER_AGENT)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
                 .retrieve()
@@ -63,6 +64,7 @@ class DiscordNotifier(
 
     companion object {
         private val log = LoggerFactory.getLogger(DiscordNotifier::class.java)
+        private const val DISCORD_USER_AGENT = "DiscordBot (https://github.com/mash-up-kr/udumeoli-spring, 1.0)"
     }
 }
 

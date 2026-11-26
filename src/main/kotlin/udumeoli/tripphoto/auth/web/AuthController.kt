@@ -24,7 +24,9 @@ import udumeoli.tripphoto.auth.entity.OAuth2Provider
 import udumeoli.tripphoto.auth.service.AuthException
 import udumeoli.tripphoto.auth.service.AuthService
 import udumeoli.tripphoto.auth.service.SocialLoginService
+import udumeoli.tripphoto.common.i18n.ApiMessageLocalizer
 import udumeoli.tripphoto.image.dto.ImageUploadTarget
+import java.util.Locale
 
 @RestController
 @RequestMapping("/api/auth")
@@ -91,10 +93,15 @@ class AuthController(
 }
 
 @RestControllerAdvice
-class AuthExceptionHandler {
+class AuthExceptionHandler(
+    private val messageLocalizer: ApiMessageLocalizer,
+) {
     @ExceptionHandler(AuthException::class)
-    fun handle(exception: AuthException): org.springframework.http.ResponseEntity<AuthErrorResponse> =
+    fun handle(
+        exception: AuthException,
+        locale: Locale,
+    ): org.springframework.http.ResponseEntity<AuthErrorResponse> =
         org.springframework.http.ResponseEntity
             .status(exception.status)
-            .body(AuthErrorResponse(exception.code.name, exception.message))
+            .body(AuthErrorResponse(exception.code.name, messageLocalizer.localize(exception.message, locale)))
 }

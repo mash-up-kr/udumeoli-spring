@@ -6,9 +6,12 @@ import graphql.schema.DataFetchingEnvironment
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter
 import org.springframework.graphql.execution.ErrorType
 import org.springframework.stereotype.Component
+import udumeoli.tripphoto.common.i18n.ApiMessageLocalizer
 
 @Component
-class GraphQlDomainExceptionResolver : DataFetcherExceptionResolverAdapter() {
+class GraphQlDomainExceptionResolver(
+    private val messageLocalizer: ApiMessageLocalizer,
+) : DataFetcherExceptionResolverAdapter() {
     override fun resolveToSingleError(
         ex: Throwable,
         env: DataFetchingEnvironment,
@@ -17,7 +20,7 @@ class GraphQlDomainExceptionResolver : DataFetcherExceptionResolverAdapter() {
             GraphqlErrorBuilder
                 .newError(env)
                 .errorType(domainEx.code.toErrorType())
-                .message(domainEx.message)
+                .message(messageLocalizer.localize(domainEx.message, env.locale))
                 .extensions(mapOf("code" to domainEx.code.name))
                 .build()
         }

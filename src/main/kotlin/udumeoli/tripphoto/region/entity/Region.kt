@@ -13,6 +13,7 @@ data class Region(
     @Id
     val regionCode: String,
     val regionName: String,
+    val nameEng: String?,
     @Embedded.Empty(prefix = "")
     val auditMetadata: AuditMetadata = AuditMetadata(),
 )

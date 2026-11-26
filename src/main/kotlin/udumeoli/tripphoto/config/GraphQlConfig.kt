@@ -55,7 +55,9 @@ private object LocalDateCoercing : Coercing<LocalDate, String> {
         locale: Locale,
     ): String =
         (dataFetcherResult as? LocalDate)?.toString()
-            ?: throw CoercingSerializeException("Date로 직렬화할 수 없는 값: $dataFetcherResult")
+            ?: throw CoercingSerializeException(
+                localized(locale, "Date로 직렬화할 수 없는 값", "Cannot serialize value as Date", dataFetcherResult),
+            )
 
     override fun parseValue(
         input: Any,
@@ -65,7 +67,10 @@ private object LocalDateCoercing : Coercing<LocalDate, String> {
         try {
             LocalDate.parse(input.toString())
         } catch (e: DateTimeParseException) {
-            throw CoercingParseValueException("Date 형식이 아닙니다 (yyyy-MM-dd): $input", e)
+            throw CoercingParseValueException(
+                localized(locale, "Date 형식이 아닙니다 (yyyy-MM-dd)", "Invalid Date format (yyyy-MM-dd)", input),
+                e,
+            )
         }
 
     override fun parseLiteral(
@@ -76,11 +81,16 @@ private object LocalDateCoercing : Coercing<LocalDate, String> {
     ): LocalDate {
         val raw =
             (input as? StringValue)?.value
-                ?: throw CoercingParseLiteralException("Date는 문자열 리터럴이어야 합니다: $input")
+                ?: throw CoercingParseLiteralException(
+                    localized(locale, "Date는 문자열 리터럴이어야 합니다", "Date must be a string literal", input),
+                )
         return try {
             LocalDate.parse(raw)
         } catch (e: DateTimeParseException) {
-            throw CoercingParseLiteralException("Date 형식이 아닙니다 (yyyy-MM-dd): $raw", e)
+            throw CoercingParseLiteralException(
+                localized(locale, "Date 형식이 아닙니다 (yyyy-MM-dd)", "Invalid Date format (yyyy-MM-dd)", raw),
+                e,
+            )
         }
     }
 }
@@ -92,7 +102,9 @@ private object LocalDateTimeCoercing : Coercing<LocalDateTime, String> {
         locale: Locale,
     ): String =
         (dataFetcherResult as? LocalDateTime)?.toString()
-            ?: throw CoercingSerializeException("DateTime으로 직렬화할 수 없는 값: $dataFetcherResult")
+            ?: throw CoercingSerializeException(
+                localized(locale, "DateTime으로 직렬화할 수 없는 값", "Cannot serialize value as DateTime", dataFetcherResult),
+            )
 
     override fun parseValue(
         input: Any,
@@ -102,7 +114,10 @@ private object LocalDateTimeCoercing : Coercing<LocalDateTime, String> {
         try {
             LocalDateTime.parse(input.toString())
         } catch (e: DateTimeParseException) {
-            throw CoercingParseValueException("DateTime 형식이 아닙니다 (ISO-8601): $input", e)
+            throw CoercingParseValueException(
+                localized(locale, "DateTime 형식이 아닙니다 (ISO-8601)", "Invalid DateTime format (ISO-8601)", input),
+                e,
+            )
         }
 
     override fun parseLiteral(
@@ -113,11 +128,23 @@ private object LocalDateTimeCoercing : Coercing<LocalDateTime, String> {
     ): LocalDateTime {
         val raw =
             (input as? StringValue)?.value
-                ?: throw CoercingParseLiteralException("DateTime은 문자열 리터럴이어야 합니다: $input")
+                ?: throw CoercingParseLiteralException(
+                    localized(locale, "DateTime은 문자열 리터럴이어야 합니다", "DateTime must be a string literal", input),
+                )
         return try {
             LocalDateTime.parse(raw)
         } catch (e: DateTimeParseException) {
-            throw CoercingParseLiteralException("DateTime 형식이 아닙니다 (ISO-8601): $raw", e)
+            throw CoercingParseLiteralException(
+                localized(locale, "DateTime 형식이 아닙니다 (ISO-8601)", "Invalid DateTime format (ISO-8601)", raw),
+                e,
+            )
         }
     }
 }
+
+private fun localized(
+    locale: Locale,
+    korean: String,
+    english: String,
+    detail: Any,
+): String = "${if (locale.language == Locale.ENGLISH.language) english else korean}: $detail"

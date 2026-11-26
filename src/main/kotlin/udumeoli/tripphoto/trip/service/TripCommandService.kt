@@ -1,3 +1,5 @@
+@file:Suppress("LongParameterList")
+
 package udumeoli.tripphoto.trip.service
 
 import org.springframework.context.ApplicationEventPublisher
@@ -132,7 +134,9 @@ class TripCommandService(
 
         // 기존 기록의 사진/코멘트 교체는 재호출이라 집계에서 제외한다 — 최초 완료만 TRIP_RECORDED다.
         if (existing == null) {
-            eventPublisher.publishEvent(KpiEventOccurred(type = KpiEventType.TRIP_RECORDED, serviceUserId = currentUserId))
+            eventPublisher.publishEvent(
+                KpiEventOccurred(type = KpiEventType.TRIP_RECORDED, serviceUserId = currentUserId),
+            )
         }
     }
 }

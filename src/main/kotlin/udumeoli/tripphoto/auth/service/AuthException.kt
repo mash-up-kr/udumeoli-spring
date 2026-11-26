@@ -16,4 +16,5 @@ class AuthException(
     val status: HttpStatus,
     override val message: String,
     cause: Throwable? = null,
+    val messageArgs: Array<out Any> = emptyArray(),
 ) : RuntimeException(message, cause)

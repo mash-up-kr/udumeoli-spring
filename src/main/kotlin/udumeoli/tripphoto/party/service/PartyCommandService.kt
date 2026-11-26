@@ -40,7 +40,7 @@ class PartyCommandService(
         name: String,
     ): PartyPayload {
         userService.getCurrentUser(currentUserId)
-        validateNonEmpty(name, "여행팟 이름을 입력해주세요.")
+        validateNonEmpty(name, "error.party.name-required")
 
         val party =
             saveParty(
@@ -78,10 +78,10 @@ class PartyCommandService(
     ): PartyPayload {
         val party =
             partyRepository.findById(partyId).orElseThrow {
-                GraphQlDomainException(GraphQlErrorCode.PARTY_NOT_FOUND, "여행팟을 찾을 수 없습니다.")
+                GraphQlDomainException(GraphQlErrorCode.PARTY_NOT_FOUND, "error.party.not-found")
             }
         partyQueryService.requireMember(partyId, currentUserId)
-        validateNonEmpty(name, "여행팟 이름을 입력해주세요.")
+        validateNonEmpty(name, "error.party.name-required")
 
         return partyQueryService.toPayload(partyRepository.save(party.copy(partyName = name)))
     }
@@ -94,7 +94,7 @@ class PartyCommandService(
     ): PartyPayload {
         val party =
             partyRepository.findById(partyId).orElseThrow {
-                GraphQlDomainException(GraphQlErrorCode.PARTY_NOT_FOUND, "여행팟을 찾을 수 없습니다.")
+                GraphQlDomainException(GraphQlErrorCode.PARTY_NOT_FOUND, "error.party.not-found")
             }
         requireOwner(party, currentUserId)
 
@@ -114,7 +114,7 @@ class PartyCommandService(
     ): Long {
         val party =
             partyRepository.findById(partyId).orElseThrow {
-                GraphQlDomainException(GraphQlErrorCode.PARTY_NOT_FOUND, "여행팟을 찾을 수 없습니다.")
+                GraphQlDomainException(GraphQlErrorCode.PARTY_NOT_FOUND, "error.party.not-found")
             }
         partyQueryService.requireMember(partyId, currentUserId)
 
@@ -130,7 +130,7 @@ class PartyCommandService(
 
         val member =
             partyMemberRepository.findByPartyIdAndServiceUserId(partyId, currentUserId)
-                ?: throw GraphQlDomainException(GraphQlErrorCode.MEMBER_NOT_FOUND, "멤버를 찾을 수 없습니다.")
+                ?: throw GraphQlDomainException(GraphQlErrorCode.MEMBER_NOT_FOUND, "error.party.member-not-found")
         partyMemberRepository.delete(member)
         return partyId
     }
@@ -146,7 +146,7 @@ class PartyCommandService(
     ): Long {
         val party =
             partyRepository.findById(partyId).orElseThrow {
-                GraphQlDomainException(GraphQlErrorCode.PARTY_NOT_FOUND, "여행팟을 찾을 수 없습니다.")
+                GraphQlDomainException(GraphQlErrorCode.PARTY_NOT_FOUND, "error.party.not-found")
             }
         requireOwner(party, currentUserId)
 
@@ -164,20 +164,20 @@ class PartyCommandService(
     ): PartyPayload {
         val party =
             partyRepository.findById(partyId).orElseThrow {
-                GraphQlDomainException(GraphQlErrorCode.PARTY_NOT_FOUND, "여행팟을 찾을 수 없습니다.")
+                GraphQlDomainException(GraphQlErrorCode.PARTY_NOT_FOUND, "error.party.not-found")
             }
         requireOwner(party, currentUserId)
 
         if (!party.canKick(targetUserId)) {
             throw GraphQlDomainException(
                 GraphQlErrorCode.CANNOT_REMOVE_OWNER,
-                "방장은 강퇴할 수 없습니다.",
+                "error.party.cannot-remove-owner",
             )
         }
 
         val member =
             partyMemberRepository.findByPartyIdAndServiceUserId(partyId, targetUserId)
-                ?: throw GraphQlDomainException(GraphQlErrorCode.MEMBER_NOT_FOUND, "멤버를 찾을 수 없습니다.")
+                ?: throw GraphQlDomainException(GraphQlErrorCode.MEMBER_NOT_FOUND, "error.party.member-not-found")
         partyMemberRepository.delete(member)
         return partyQueryService.toPayload(party)
     }
@@ -188,7 +188,7 @@ class PartyCommandService(
     ) {
         userService.getCurrentUser(userId)
         if (!party.isOwner(userId)) {
-            throw GraphQlDomainException(GraphQlErrorCode.FORBIDDEN, "방장만 수행할 수 있습니다.")
+            throw GraphQlDomainException(GraphQlErrorCode.FORBIDDEN, "error.party.owner-only")
         }
     }
 
@@ -257,7 +257,7 @@ class PartyCommandService(
         } catch (_: DuplicateKeyException) {
             throw GraphQlDomainException(
                 GraphQlErrorCode.INVITE_CODE_CONFLICT,
-                "초대코드 생성 중 충돌이 발생했습니다. 다시 시도해주세요.",
+                "error.invite.conflict",
             )
         }
 }

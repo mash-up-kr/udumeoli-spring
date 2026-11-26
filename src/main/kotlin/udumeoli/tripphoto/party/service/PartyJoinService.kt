@@ -89,7 +89,7 @@ class PartyJoinService(
             findByInviteCode(inviteCode)
                 ?: throw GraphQlDomainException(
                     GraphQlErrorCode.INVALID_INVITE_CODE,
-                    "존재하지 않는 초대코드입니다.",
+                    "error.invite.not-found",
                 )
 
         rejectIfAlreadyJoined(requireNotNull(party.id), currentUserId)
@@ -100,7 +100,7 @@ class PartyJoinService(
         if (inviteCode.length != INVITE_CODE_LENGTH || inviteCode.any { !it.isLetterOrDigit() }) {
             throw GraphQlDomainException(
                 GraphQlErrorCode.INVALID_INVITE_CODE,
-                "초대코드는 영문과 숫자 6자리여야 합니다.",
+                "error.invite.invalid-format",
             )
         }
     }
@@ -112,7 +112,7 @@ class PartyJoinService(
         if (partyMemberRepository.existsByPartyIdAndServiceUserId(partyId, currentUserId)) {
             throw GraphQlDomainException(
                 GraphQlErrorCode.ALREADY_JOINED_PARTY,
-                "이미 참여 중인 여행팟입니다.",
+                "error.party.already-joined",
             )
         }
     }
@@ -121,7 +121,8 @@ class PartyJoinService(
         if (memberCount >= MAX_PARTY_MEMBERS) {
             throw GraphQlDomainException(
                 GraphQlErrorCode.PARTY_FULL,
-                "정원이 다 찼어요. ($MAX_PARTY_MEMBERS/$MAX_PARTY_MEMBERS)",
+                "error.party.full",
+                arrayOf(MAX_PARTY_MEMBERS),
             )
         }
     }

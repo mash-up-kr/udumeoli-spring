@@ -23,4 +23,5 @@ enum class GraphQlErrorCode {
 class GraphQlDomainException(
     val code: GraphQlErrorCode,
     override val message: String,
+    val messageArgs: Array<out Any> = emptyArray(),
 ) : RuntimeException(message)

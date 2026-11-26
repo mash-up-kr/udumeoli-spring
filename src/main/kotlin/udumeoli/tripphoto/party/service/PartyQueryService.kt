@@ -64,7 +64,7 @@ class PartyQueryService(
                 .associateBy { requireNotNull(it.id) }
         val owner =
             usersById[party.ownerId]
-                ?: throw GraphQlDomainException(GraphQlErrorCode.UNAUTHENTICATED, "방장 정보를 찾을 수 없습니다.")
+                ?: throw GraphQlDomainException(GraphQlErrorCode.UNAUTHENTICATED, "error.party.owner-not-found")
 
         return party.toPayload(
             owner = owner,
@@ -78,7 +78,7 @@ class PartyQueryService(
     ) {
         userService.getCurrentUser(userId)
         if (!partyMemberRepository.existsByPartyIdAndServiceUserId(partyId, userId)) {
-            throw GraphQlDomainException(GraphQlErrorCode.FORBIDDEN, "여행팟 멤버만 접근할 수 있습니다.")
+            throw GraphQlDomainException(GraphQlErrorCode.FORBIDDEN, "error.party.members-only")
         }
     }
 
@@ -93,7 +93,7 @@ class PartyQueryService(
 
     private fun requireParty(partyId: Long): Party =
         partyRepository.findById(partyId).orElseThrow {
-            GraphQlDomainException(GraphQlErrorCode.PARTY_NOT_FOUND, "여행팟을 찾을 수 없습니다.")
+            GraphQlDomainException(GraphQlErrorCode.PARTY_NOT_FOUND, "error.party.not-found")
         }
 
     companion object {

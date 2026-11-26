@@ -4,6 +4,7 @@ package udumeoli.tripphoto.auth.config
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpServletResponse
+import org.springframework.context.MessageSource
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
@@ -20,6 +21,7 @@ import org.springframework.security.web.SecurityFilterChain
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
+import org.springframework.web.servlet.LocaleResolver
 import udumeoli.tripphoto.auth.dto.AuthErrorResponse
 import udumeoli.tripphoto.auth.service.JwtTokenService
 import udumeoli.tripphoto.auth.web.FrontendCallbackOverrideFilter
@@ -37,6 +39,8 @@ class SecurityConfig {
         successHandler: OAuth2LoginSuccessHandler,
         failureHandler: OAuth2LoginFailureHandler,
         frontendCallbackOverrideFilter: FrontendCallbackOverrideFilter,
+        localeResolver: LocaleResolver,
+        messageSource: MessageSource,
     ): SecurityFilterChain =
         http
             .addFilterBefore(frontendCallbackOverrideFilter, OAuth2AuthorizationRequestRedirectFilter::class.java)
@@ -71,10 +75,22 @@ class SecurityConfig {
             }.oauth2ResourceServer {
                 it
                     .jwt { jwt -> jwt.decoder(jwtDecoder).jwtAuthenticationConverter(jwtAuthenticationConverter()) }
-                    .authenticationEntryPoint { _, response, _ ->
-                        writeError(response, objectMapper, HttpServletResponse.SC_UNAUTHORIZED, "UNAUTHENTICATED", "로그인이 필요합니다.")
-                    }.accessDeniedHandler { _, response, _ ->
-                        writeError(response, objectMapper, HttpServletResponse.SC_FORBIDDEN, "FORBIDDEN", "접근 권한이 없습니다.")
+                    .authenticationEntryPoint { request, response, _ ->
+                        writeError(
+                            response,
+                            objectMapper,
+                            HttpServletResponse.SC_UNAUTHORIZED,
+                            "UNAUTHENTICATED",
+                            messageSource.getMessage("error.login.required", null, localeResolver.resolveLocale(request)),
+                        )
+                    }.accessDeniedHandler { request, response, _ ->
+                        writeError(
+                            response,
+                            objectMapper,
+                            HttpServletResponse.SC_FORBIDDEN,
+                            "FORBIDDEN",
+                            messageSource.getMessage("error.access.denied", null, localeResolver.resolveLocale(request)),
+                        )
                     }
             }.headers { it.frameOptions { frame -> frame.sameOrigin() } }
             .build()
@@ -88,7 +104,7 @@ class SecurityConfig {
             CorsConfiguration().apply {
                 allowedOrigins = properties.corsAllowedOrigins
                 allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-                allowedHeaders = listOf("Authorization", "Content-Type")
+                allowedHeaders = listOf("Authorization", "Content-Type", "Accept-Language")
                 exposedHeaders = listOf("Location")
                 allowCredentials = true
                 maxAge = 3600

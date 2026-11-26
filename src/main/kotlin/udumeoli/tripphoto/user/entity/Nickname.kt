@@ -12,8 +12,6 @@ package udumeoli.tripphoto.user.entity
 object Nickname {
     const val MAX_LENGTH = 6
 
-    const val RULE_MESSAGE = "닉네임은 1자 이상 ${MAX_LENGTH}자 이하로 입력해주세요."
-
     /** 규칙을 지킨 값이면 앞뒤 공백을 턴 닉네임, 아니면 null. */
     fun normalizeOrNull(raw: String): String? = raw.trim().takeIf { it.isNotEmpty() && it.length <= MAX_LENGTH }
 }

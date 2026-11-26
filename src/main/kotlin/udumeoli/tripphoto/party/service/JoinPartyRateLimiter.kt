@@ -21,7 +21,7 @@ class JoinPartyRateLimiter {
         if (count > MAX_ATTEMPTS_PER_WINDOW) {
             throw GraphQlDomainException(
                 GraphQlErrorCode.RATE_LIMITED,
-                "초대코드 입력 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.",
+                "error.invite.rate-limited",
             )
         }
     }

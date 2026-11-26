@@ -99,7 +99,7 @@ class TripQueryService(
 
     fun requireTrip(tripId: Long): Trip =
         tripRepository.findById(tripId).orElseThrow {
-            GraphQlDomainException(GraphQlErrorCode.TRIP_NOT_FOUND, "핀을 찾을 수 없습니다.")
+            GraphQlDomainException(GraphQlErrorCode.TRIP_NOT_FOUND, "error.trip.not-found")
         }
 
     /** 모든 조회의 첫 관문 — 멤버인지 확인하고 팟의 핀을 읽는다. */

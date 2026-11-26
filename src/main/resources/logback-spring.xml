@@ -32,6 +32,10 @@
 
     <!-- dev 및 기타 운영 프로필: 콘솔 및 파일 롤링 로깅 활성화 -->
     <springProfile name="!local">
+        <!-- Native Image의 Flyway 리소스 스캔 및 GC 알림 미지원 경고는 정상 실행 시 반복된다.
+             실제 Flyway 마이그레이션 실패와 다른 ERROR 로그는 계속 기록한다. -->
+        <logger name="org.flywaydb.core.internal.scanner.classpath.ClassPathScanner" level="ERROR"/>
+        <logger name="io.micrometer.core.instrument.binder.jvm.JvmGcMetrics" level="ERROR"/>
         <!-- 전체 로그 File Appender (롤링: 날짜 + 파일 크기 기준) -->
         <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <file>${LOG_PATH}/app.log</file>

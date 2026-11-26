@@ -46,14 +46,14 @@ class KakaoTokenValidator(
                 throw AuthException(
                     AuthErrorCode.INVALID_TOKEN,
                     HttpStatus.UNAUTHORIZED,
-                    "Invalid Kakao access token",
+                    "error.auth.kakao-token-invalid",
                 )
             }
         } catch (e: RestClientException) {
             throw AuthException(
                 AuthErrorCode.INVALID_TOKEN,
                 HttpStatus.UNAUTHORIZED,
-                "Failed to validate Kakao token: ${e.message}",
+                "error.auth.kakao-token-invalid",
                 e,
             )
         }
@@ -78,7 +78,7 @@ class KakaoTokenValidator(
                     ?: throw AuthException(
                         AuthErrorCode.EXTERNAL_API_ERROR,
                         HttpStatus.SERVICE_UNAVAILABLE,
-                        "Failed to fetch Kakao user info",
+                        "error.auth.kakao-user-unavailable",
                     )
 
             val providerUserId =
@@ -86,7 +86,7 @@ class KakaoTokenValidator(
                     ?: throw AuthException(
                         AuthErrorCode.VALIDATION_ERROR,
                         HttpStatus.BAD_REQUEST,
-                        "No user ID in Kakao response",
+                        "error.auth.kakao-user-invalid",
                     )
 
             val account = body["kakao_account"] as? Map<*, *>
@@ -102,7 +102,7 @@ class KakaoTokenValidator(
             throw AuthException(
                 AuthErrorCode.EXTERNAL_API_ERROR,
                 HttpStatus.SERVICE_UNAVAILABLE,
-                "Failed to fetch Kakao user info: ${e.message}",
+                "error.auth.kakao-user-unavailable",
                 e,
             )
         }

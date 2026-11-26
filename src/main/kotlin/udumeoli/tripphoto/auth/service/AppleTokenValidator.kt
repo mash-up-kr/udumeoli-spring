@@ -63,8 +63,7 @@ class AppleTokenValidator(
                     throw AuthException(
                         AuthErrorCode.INVALID_TOKEN,
                         HttpStatus.UNAUTHORIZED,
-                        "Invalid audience: ${tokenAudiences.joinToString(", ")}. " +
-                            "Expected one of: ${allowedAudiences.joinToString(", ")}",
+                        "error.auth.apple-audience-invalid",
                     )
                 }
 
@@ -73,7 +72,7 @@ class AppleTokenValidator(
                 throw AuthException(
                     AuthErrorCode.INVALID_TOKEN,
                     HttpStatus.UNAUTHORIZED,
-                    "Invalid Apple identity token: ${e.message}",
+                    "error.auth.apple-token-invalid",
                     e,
                 )
             }
@@ -98,7 +97,7 @@ class AppleTokenValidator(
                 ?: throw AuthException(
                     AuthErrorCode.INVALID_TOKEN,
                     HttpStatus.UNAUTHORIZED,
-                    "No matching public key found for kid: $kid",
+                    "error.auth.apple-key-not-found",
                 )
 
         return createPublicKey(key)
@@ -112,7 +111,7 @@ class AppleTokenValidator(
             ?: throw AuthException(
                 AuthErrorCode.INVALID_TOKEN,
                 HttpStatus.UNAUTHORIZED,
-                "No kid found in token header",
+                "error.auth.apple-header-invalid",
             )
     }
 
@@ -122,13 +121,13 @@ class AppleTokenValidator(
                 ?: throw AuthException(
                     AuthErrorCode.EXTERNAL_API_ERROR,
                     HttpStatus.SERVICE_UNAVAILABLE,
-                    "Failed to fetch Apple public keys",
+                    "error.auth.apple-keys-unavailable",
                 )
         } catch (e: RestClientException) {
             throw AuthException(
                 AuthErrorCode.EXTERNAL_API_ERROR,
                 HttpStatus.SERVICE_UNAVAILABLE,
-                "Failed to fetch Apple public keys: ${e.message}",
+                "error.auth.apple-keys-unavailable",
                 e,
             )
         }
@@ -139,14 +138,14 @@ class AppleTokenValidator(
                 ?: throw AuthException(
                     AuthErrorCode.INVALID_TOKEN,
                     HttpStatus.UNAUTHORIZED,
-                    "Missing 'n' in public key",
+                    "error.auth.apple-key-invalid",
                 )
         val e =
             key["e"] as? String
                 ?: throw AuthException(
                     AuthErrorCode.INVALID_TOKEN,
                     HttpStatus.UNAUTHORIZED,
-                    "Missing 'e' in public key",
+                    "error.auth.apple-key-invalid",
                 )
 
         val modulus = BigInteger(1, Base64.getUrlDecoder().decode(n))

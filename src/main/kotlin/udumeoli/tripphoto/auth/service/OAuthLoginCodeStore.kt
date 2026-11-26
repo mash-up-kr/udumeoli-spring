@@ -35,7 +35,7 @@ class OAuthLoginCodeStore(
             ?: throw AuthException(
                 AuthErrorCode.INVALID_LOGIN_CODE,
                 HttpStatus.UNAUTHORIZED,
-                "로그인 코드가 유효하지 않거나 만료되었습니다.",
+                "error.auth.login-code-invalid",
             )
 }
 

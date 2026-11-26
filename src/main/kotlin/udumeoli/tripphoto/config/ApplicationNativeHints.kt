@@ -14,6 +14,8 @@ class ApplicationNativeHints : RuntimeHintsRegistrar {
         hints: RuntimeHints,
         classLoader: ClassLoader?,
     ) {
+        hints.resources().registerPattern("messages*.properties")
+        hints.resources().registerResourceBundle("messages")
         registerFlywayHints(hints, classLoader)
         registerJjwtHints(hints, classLoader)
         registerGoogleIdTokenHints(hints)

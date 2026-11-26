@@ -1,4 +1,4 @@
-package udumeoli.tripphoto.feedback.notification
+package udumeoli.tripphoto.kpi.notification
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -6,14 +6,14 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import java.util.concurrent.ThreadPoolExecutor
 
 @Configuration(proxyBeanMethods = false)
-class FeedbackDiscordExecutorConfig {
+class DiscordNotificationExecutorConfig {
     @Bean(defaultCandidate = false)
-    fun feedbackDiscordExecutor(): ThreadPoolTaskExecutor =
+    fun discordNotificationExecutor(): ThreadPoolTaskExecutor =
         ThreadPoolTaskExecutor().apply {
             corePoolSize = 1
             maxPoolSize = 1
             setQueueCapacity(QUEUE_CAPACITY)
-            setThreadNamePrefix("feedback-discord-")
+            setThreadNamePrefix("discord-notification-")
             setRejectedExecutionHandler(ThreadPoolExecutor.CallerRunsPolicy())
         }
 

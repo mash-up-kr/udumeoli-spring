@@ -11,6 +11,7 @@ import udumeoli.tripphoto.image.service.ImageService
 import udumeoli.tripphoto.party.dto.PartyPayload
 import udumeoli.tripphoto.party.entity.Party
 import udumeoli.tripphoto.party.entity.PartyMember
+import udumeoli.tripphoto.party.repository.CampaignPartyInstanceRepository
 import udumeoli.tripphoto.party.repository.PartyMemberRepository
 import udumeoli.tripphoto.party.repository.PartyRepository
 import udumeoli.tripphoto.trip.entity.TripRecord
@@ -33,6 +34,7 @@ class PartyCommandService(
     private val tripRecordRepository: TripRecordRepository,
     private val tripImageRepository: TripImageRepository,
     private val imageService: ImageService,
+    private val campaignPartyInstanceRepository: CampaignPartyInstanceRepository,
 ) {
     @Transactional
     fun createParty(
@@ -118,20 +120,28 @@ class PartyCommandService(
             }
         partyQueryService.requireMember(partyId, currentUserId)
 
-        if (party.isOwner(currentUserId)) {
-            val successorId = partyQueryService.memberUserIdsInJoinOrder(partyId).firstOrNull { it != currentUserId }
-            if (successorId == null) {
-                return deleteParty(currentUserId, partyId)
+        val campaignInstance = campaignPartyInstanceRepository.findByPartyIdAndFanUserId(partyId, currentUserId)
+        if (campaignInstance != null) {
+            deleteAllTripData(partyId)
+            partyMemberRepository.deleteAll(partyMemberRepository.findAllByPartyId(partyId))
+            campaignPartyInstanceRepository.delete(campaignInstance)
+            partyRepository.delete(party)
+        } else {
+            if (party.isOwner(currentUserId)) {
+                val successorId = partyQueryService.memberUserIdsInJoinOrder(partyId).firstOrNull { it != currentUserId }
+                if (successorId == null) {
+                    return deleteParty(currentUserId, partyId)
+                }
+                saveParty(party.copy(ownerId = successorId))
             }
-            saveParty(party.copy(ownerId = successorId))
+
+            deleteMemberTripData(partyId, currentUserId)
+
+            val member =
+                partyMemberRepository.findByPartyIdAndServiceUserId(partyId, currentUserId)
+                    ?: throw GraphQlDomainException(GraphQlErrorCode.MEMBER_NOT_FOUND, "error.party.member-not-found")
+            partyMemberRepository.delete(member)
         }
-
-        deleteMemberTripData(partyId, currentUserId)
-
-        val member =
-            partyMemberRepository.findByPartyIdAndServiceUserId(partyId, currentUserId)
-                ?: throw GraphQlDomainException(GraphQlErrorCode.MEMBER_NOT_FOUND, "error.party.member-not-found")
-        partyMemberRepository.delete(member)
         return partyId
     }
 
@@ -152,6 +162,7 @@ class PartyCommandService(
 
         deleteAllTripData(partyId)
         partyMemberRepository.deleteAll(partyMemberRepository.findAllByPartyId(partyId))
+        campaignPartyInstanceRepository.findByPartyId(partyId)?.let(campaignPartyInstanceRepository::delete)
         partyRepository.delete(party)
         return partyId
     }

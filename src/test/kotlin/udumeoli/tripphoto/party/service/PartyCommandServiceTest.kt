@@ -17,6 +17,7 @@ import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
 import udumeoli.tripphoto.image.service.ImageService
 import udumeoli.tripphoto.party.entity.Party
 import udumeoli.tripphoto.party.entity.PartyMember
+import udumeoli.tripphoto.party.repository.CampaignPartyInstanceRepository
 import udumeoli.tripphoto.party.repository.PartyMemberRepository
 import udumeoli.tripphoto.party.repository.PartyRepository
 import udumeoli.tripphoto.trip.entity.Trip
@@ -38,6 +39,7 @@ class PartyCommandServiceTest {
     private lateinit var tripRecordRepository: TripRecordRepository
     private lateinit var tripImageRepository: TripImageRepository
     private lateinit var imageService: ImageService
+    private lateinit var campaignPartyInstanceRepository: CampaignPartyInstanceRepository
     private lateinit var partyCommandService: PartyCommandService
 
     private val now = LocalDateTime.of(2026, 7, 17, 16, 30)
@@ -51,6 +53,9 @@ class PartyCommandServiceTest {
         tripRecordRepository = mockk()
         tripImageRepository = mockk()
         imageService = mockk()
+        campaignPartyInstanceRepository = mockk(relaxed = true)
+        every { campaignPartyInstanceRepository.findByPartyIdAndFanUserId(any(), any()) } returns null
+        every { campaignPartyInstanceRepository.findByPartyId(any()) } returns null
 
         val partyQueryService = PartyQueryService(partyRepository, partyMemberRepository, userService)
         partyCommandService =
@@ -64,6 +69,7 @@ class PartyCommandServiceTest {
                 tripRecordRepository = tripRecordRepository,
                 tripImageRepository = tripImageRepository,
                 imageService = imageService,
+                campaignPartyInstanceRepository = campaignPartyInstanceRepository,
             )
     }
 

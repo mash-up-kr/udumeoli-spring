@@ -23,6 +23,7 @@ import udumeoli.tripphoto.trip.repository.TripRecordRepository
 import udumeoli.tripphoto.trip.repository.TripRepository
 import udumeoli.tripphoto.user.entity.ServiceUser
 import udumeoli.tripphoto.user.repository.ServiceUserRepository
+import java.util.Locale
 
 /** 설계 문서 5장 워크스루를 H2에 그대로 심고 세 레벨 응답을 통째로 검증한다. */
 @SpringBootTest
@@ -67,6 +68,54 @@ class PartyMapGraphQlTest {
             .errors()
             .expect { error -> error.extensions["code"] == GraphQlErrorCode.FORBIDDEN.name }
             .verify()
+    }
+
+    @Test
+    fun `English locale translates domain errors without changing error codes`() {
+        val owner = createUser("방장")
+        val outsider = createUser("외부")
+        val partyId = createParty(owner)
+
+        graphQlTester(outsider, Locale.ENGLISH)
+            .document("query { partyMapOverview(partyId: \"$partyId\") { memberCount } }")
+            .execute()
+            .errors()
+            .expect { error ->
+                error.extensions["code"] == GraphQlErrorCode.FORBIDDEN.name &&
+                    error.message == "Only party members can access this resource."
+            }.verify()
+    }
+
+    @Test
+    fun `English locale returns localized region names in map cells`() {
+        val owner = createUser("방장")
+        val second = createUser("멤버")
+        val third = createUser("셋")
+        val fourth = createUser("넷")
+        val partyId = createParty(owner, second, third, fourth)
+        seedWalkthrough(partyId, owner, second, third, fourth)
+
+        graphQlTester(owner, Locale.ENGLISH)
+            .document(
+                """
+                query {
+                  partyMapOverview(partyId: "$partyId") {
+                    country { regionName }
+                    provinces { regionCode regionName }
+                    municipalities { regionCode regionName }
+                  }
+                }
+                """.trimIndent(),
+            ).execute()
+            .path("partyMapOverview.country.regionName")
+            .entity(String::class.java)
+            .isEqualTo("South Korea")
+            .path("partyMapOverview.provinces[?(@.regionCode == '11')].regionName")
+            .entityList(String::class.java)
+            .containsExactly("Seoul")
+            .path("partyMapOverview.municipalities[?(@.regionCode == '32030')].regionName")
+            .entityList(String::class.java)
+            .containsExactly("Gangneung-si")
     }
 
     @Test
@@ -284,10 +333,16 @@ class PartyMapGraphQlTest {
         return serviceUserRepository.save(user)
     }
 
-    private fun graphQlTester(user: ServiceUser): ExecutionGraphQlServiceTester {
+    private fun graphQlTester(
+        user: ServiceUser,
+        locale: Locale = Locale.KOREAN,
+    ): ExecutionGraphQlServiceTester {
         SecurityContextHolder.getContext().authentication =
             TestingAuthenticationToken(requireNotNull(user.id).toString(), null, emptyList())
-        return ExecutionGraphQlServiceTester.builder(graphQlService).build()
+        return ExecutionGraphQlServiceTester
+            .builder(graphQlService)
+            .configureExecutionInput { _, builder -> builder.locale(locale).build() }
+            .build()
     }
 
     companion object {

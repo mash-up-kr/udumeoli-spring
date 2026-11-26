@@ -18,7 +18,7 @@ class SocialLoginService(
                 ?: throw AuthException(
                     AuthErrorCode.VALIDATION_ERROR,
                     HttpStatus.BAD_REQUEST,
-                    "Unsupported OAuth2 provider: $provider",
+                    "error.auth.provider-unsupported",
                 )
 
         val profile = validator.validate(token)

@@ -19,7 +19,7 @@ class InviteCodeIssuer(
         }
         throw GraphQlDomainException(
             GraphQlErrorCode.INVITE_CODE_CONFLICT,
-            "초대코드 생성 중 충돌이 발생했습니다. 다시 시도해주세요.",
+            "error.invite.conflict",
         )
     }
 

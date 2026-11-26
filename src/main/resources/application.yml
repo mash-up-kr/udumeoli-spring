@@ -1,6 +1,8 @@
 spring:
   application:
     name: TripPhoto
+  messages:
+    fallback-to-system-locale: false
   graphql:
     graphiql:
       enabled: true

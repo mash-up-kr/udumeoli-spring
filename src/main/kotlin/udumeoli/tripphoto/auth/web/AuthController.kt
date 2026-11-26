@@ -1,6 +1,7 @@
 package udumeoli.tripphoto.auth.web
 
 import jakarta.validation.Valid
+import org.springframework.context.MessageSource
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.PostMapping
@@ -25,6 +26,7 @@ import udumeoli.tripphoto.auth.service.AuthException
 import udumeoli.tripphoto.auth.service.AuthService
 import udumeoli.tripphoto.auth.service.SocialLoginService
 import udumeoli.tripphoto.image.dto.ImageUploadTarget
+import java.util.Locale
 
 @RestController
 @RequestMapping("/api/auth")
@@ -91,10 +93,20 @@ class AuthController(
 }
 
 @RestControllerAdvice
-class AuthExceptionHandler {
+class AuthExceptionHandler(
+    private val messageSource: MessageSource,
+) {
     @ExceptionHandler(AuthException::class)
-    fun handle(exception: AuthException): org.springframework.http.ResponseEntity<AuthErrorResponse> =
+    fun handle(
+        exception: AuthException,
+        locale: Locale,
+    ): org.springframework.http.ResponseEntity<AuthErrorResponse> =
         org.springframework.http.ResponseEntity
             .status(exception.status)
-            .body(AuthErrorResponse(exception.code.name, exception.message))
+            .body(
+                AuthErrorResponse(
+                    exception.code.name,
+                    messageSource.getMessage(exception.message, exception.messageArgs, locale),
+                ),
+            )
 }

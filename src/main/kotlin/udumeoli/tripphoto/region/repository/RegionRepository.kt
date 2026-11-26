@@ -9,4 +9,6 @@ import udumeoli.tripphoto.region.entity.Region
  */
 interface RegionRepository : Repository<Region, String> {
     fun existsByRegionCode(regionCode: String): Boolean
+
+    fun findAll(): List<Region>
 }

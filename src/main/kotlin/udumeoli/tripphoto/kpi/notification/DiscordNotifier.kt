@@ -5,6 +5,7 @@ import org.springframework.aot.hint.annotation.RegisterReflectionForBinding
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
+import org.springframework.web.client.RestClientException
 
 @RegisterReflectionForBinding(
     DiscordMessage::class,
@@ -56,7 +57,7 @@ class DiscordNotifier(
                 .body(body)
                 .retrieve()
                 .toBodilessEntity()
-        } catch (exception: Exception) {
+        } catch (exception: RestClientException) {
             // Webhook URLs are credentials, so avoid logging exception messages that may contain the URL.
             log.warn("디스코드 웹훅 전송 실패: {}", exception.javaClass.simpleName)
         }

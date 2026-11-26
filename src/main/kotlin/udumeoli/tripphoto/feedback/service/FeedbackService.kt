@@ -31,11 +31,11 @@ class FeedbackService(
         userService.getCurrentUser(currentUserId)
 
         if (input.rating !in Feedback.RATING_RANGE) {
-            throw GraphQlDomainException(GraphQlErrorCode.VALIDATION_ERROR, "별점은 1~5 사이여야 합니다.")
+            throw GraphQlDomainException(GraphQlErrorCode.VALIDATION_ERROR, "error.feedback.invalid-rating")
         }
         val content = input.content.trim()
         if (content.isEmpty() || content.length > Feedback.CONTENT_MAX_LENGTH) {
-            throw GraphQlDomainException(GraphQlErrorCode.VALIDATION_ERROR, "의견은 공백 제외 1자 이상 5,000자 이하여야 합니다.")
+            throw GraphQlDomainException(GraphQlErrorCode.VALIDATION_ERROR, "error.feedback.invalid-content")
         }
 
         val feedback =

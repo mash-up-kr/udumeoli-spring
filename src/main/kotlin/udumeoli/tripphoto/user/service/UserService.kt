@@ -40,7 +40,11 @@ class UserService(
     ): UserPayload {
         val normalizedNickname =
             Nickname.normalizeOrNull(nickname)
-                ?: throw GraphQlDomainException(GraphQlErrorCode.VALIDATION_ERROR, Nickname.RULE_MESSAGE)
+                ?: throw GraphQlDomainException(
+                    GraphQlErrorCode.VALIDATION_ERROR,
+                    "error.nickname.invalid",
+                    arrayOf(Nickname.MAX_LENGTH),
+                )
         // TODO: 업로드한 프로필 사진(프리셋 아님)으로 바꾼 경우 썸네일 생성 요청 필요
         val user = getCurrentUser(currentUserId)
         return serviceUserRepository
@@ -51,7 +55,7 @@ class UserService(
     @Transactional(readOnly = true)
     fun getCurrentUser(currentUserId: Long): ServiceUser =
         serviceUserRepository.findById(currentUserId).orElseThrow {
-            GraphQlDomainException(GraphQlErrorCode.UNAUTHENTICATED, "로그인이 필요합니다.")
+            GraphQlDomainException(GraphQlErrorCode.UNAUTHENTICATED, "error.login.required")
         }
 
     @Transactional(readOnly = true)

@@ -130,7 +130,7 @@ class JwtTokenService(
             throw AuthException(
                 AuthErrorCode.INVALID_TOKEN,
                 HttpStatus.UNAUTHORIZED,
-                "유효하지 않거나 만료된 인증 토큰입니다.",
+                "error.auth.token-invalid",
                 exception,
             )
         }
@@ -153,7 +153,7 @@ class JwtTokenService(
             ?: throw AuthException(
                 AuthErrorCode.INVALID_TOKEN,
                 HttpStatus.UNAUTHORIZED,
-                "인증 토큰의 사용자 정보가 올바르지 않습니다.",
+                "error.auth.token-user-invalid",
             )
 
     private fun requireStringClaim(
@@ -165,7 +165,7 @@ class JwtTokenService(
         throw AuthException(
             AuthErrorCode.INVALID_TOKEN,
             HttpStatus.UNAUTHORIZED,
-            "인증 토큰의 필수 정보가 올바르지 않습니다.",
+            "error.auth.token-claims-invalid",
         )
 
     private fun createSecretKey(rawSecret: String): SecretKey {

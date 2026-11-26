@@ -26,7 +26,8 @@ class ImageService(
             ALLOWED_CONTENT_TYPES[contentType]
                 ?: throw GraphQlDomainException(
                     GraphQlErrorCode.VALIDATION_ERROR,
-                    "허용되지 않는 contentType: $contentType (허용: ${ALLOWED_CONTENT_TYPES.keys.joinToString()})",
+                    "error.image.invalid-content-type",
+                    arrayOf(contentType, ALLOWED_CONTENT_TYPES.keys.joinToString()),
                 )
         val objectKey = "original/${UUID.randomUUID()}.$extension"
 
@@ -62,7 +63,8 @@ class ImageService(
         if (missingIds.isNotEmpty()) {
             throw GraphQlDomainException(
                 GraphQlErrorCode.IMAGE_NOT_FOUND,
-                "존재하지 않는 이미지입니다: $missingIds",
+                "error.image.not-found-ids",
+                arrayOf(missingIds),
             )
         }
         return imageIds.map(imagesById::getValue)

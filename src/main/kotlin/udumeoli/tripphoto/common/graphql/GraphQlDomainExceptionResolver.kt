@@ -3,12 +3,15 @@ package udumeoli.tripphoto.common.graphql
 import graphql.GraphQLError
 import graphql.GraphqlErrorBuilder
 import graphql.schema.DataFetchingEnvironment
+import org.springframework.context.MessageSource
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter
 import org.springframework.graphql.execution.ErrorType
 import org.springframework.stereotype.Component
 
 @Component
-class GraphQlDomainExceptionResolver : DataFetcherExceptionResolverAdapter() {
+class GraphQlDomainExceptionResolver(
+    private val messageSource: MessageSource,
+) : DataFetcherExceptionResolverAdapter() {
     override fun resolveToSingleError(
         ex: Throwable,
         env: DataFetchingEnvironment,
@@ -17,7 +20,7 @@ class GraphQlDomainExceptionResolver : DataFetcherExceptionResolverAdapter() {
             GraphqlErrorBuilder
                 .newError(env)
                 .errorType(domainEx.code.toErrorType())
-                .message(domainEx.message)
+                .message(messageSource.getMessage(domainEx.message, domainEx.messageArgs, env.locale))
                 .extensions(mapOf("code" to domainEx.code.name))
                 .build()
         }

@@ -43,7 +43,7 @@ class AuthService(
         jwtTokenService.decodeSignupToken(signupToken)
         return runCatching { imageService.createUploadUrl(uploaderId = null, contentType = contentType) }
             .getOrElse {
-                throw AuthException(AuthErrorCode.VALIDATION_ERROR, HttpStatus.BAD_REQUEST, "허용되지 않는 이미지 형식입니다.", it)
+                throw AuthException(AuthErrorCode.VALIDATION_ERROR, HttpStatus.BAD_REQUEST, "error.image.invalid-format", it)
             }
     }
 
@@ -93,14 +93,19 @@ class AuthService(
     ): TokenResponse {
         val normalizedNickname =
             Nickname.normalizeOrNull(nickname)
-                ?: throw AuthException(AuthErrorCode.VALIDATION_ERROR, HttpStatus.BAD_REQUEST, Nickname.RULE_MESSAGE)
+                ?: throw AuthException(
+                    AuthErrorCode.VALIDATION_ERROR,
+                    HttpStatus.BAD_REQUEST,
+                    "error.nickname.invalid",
+                    messageArgs = arrayOf(Nickname.MAX_LENGTH),
+                )
 
         validateImageExists(profileImage)
         // TODO: 업로드한 프로필 사진(프리셋 아님)이면 imageService.requestThumbnails(...)로 썸네일 생성 요청
 
         val profile = jwtTokenService.decodeSignupToken(signupToken)
         if (socialAccountRepository.findByProviderAndProviderUserId(profile.provider, profile.providerUserId) != null) {
-            throw AuthException(AuthErrorCode.SIGNUP_ALREADY_COMPLETED, HttpStatus.CONFLICT, "이미 가입이 완료된 소셜 계정입니다.")
+            throw AuthException(AuthErrorCode.SIGNUP_ALREADY_COMPLETED, HttpStatus.CONFLICT, "error.signup.already-completed")
         }
 
         try {
@@ -129,7 +134,7 @@ class AuthService(
             )
             return issueAndStoreTokenPair(userId)
         } catch (exception: DataIntegrityViolationException) {
-            throw AuthException(AuthErrorCode.SIGNUP_ALREADY_COMPLETED, HttpStatus.CONFLICT, "이미 가입이 완료된 소셜 계정입니다.", exception)
+            throw AuthException(AuthErrorCode.SIGNUP_ALREADY_COMPLETED, HttpStatus.CONFLICT, "error.signup.already-completed", exception)
         }
     }
 
@@ -138,19 +143,19 @@ class AuthService(
         val claims = jwtTokenService.decodeRefreshToken(refreshToken)
         val storedToken =
             refreshTokenRepository.findByTokenHash(hash(refreshToken))
-                ?: throw AuthException(AuthErrorCode.INVALID_TOKEN, HttpStatus.UNAUTHORIZED, "이미 사용되었거나 폐기된 refresh token입니다.")
+                ?: throw AuthException(AuthErrorCode.INVALID_TOKEN, HttpStatus.UNAUTHORIZED, "error.auth.refresh-token-revoked")
 
         if (storedToken.serviceUserId != claims.serviceUserId || storedToken.expiresAt.isBefore(LocalDateTime.now(ZoneOffset.UTC))) {
             refreshTokenRepository.delete(storedToken)
-            throw AuthException(AuthErrorCode.INVALID_TOKEN, HttpStatus.UNAUTHORIZED, "유효하지 않거나 만료된 refresh token입니다.")
+            throw AuthException(AuthErrorCode.INVALID_TOKEN, HttpStatus.UNAUTHORIZED, "error.auth.refresh-token-invalid")
         }
         if (!serviceUserRepository.existsById(claims.serviceUserId)) {
             refreshTokenRepository.delete(storedToken)
-            throw AuthException(AuthErrorCode.USER_NOT_FOUND, HttpStatus.UNAUTHORIZED, "사용자를 찾을 수 없습니다.")
+            throw AuthException(AuthErrorCode.USER_NOT_FOUND, HttpStatus.UNAUTHORIZED, "error.user.not-found")
         }
 
         if (refreshTokenRepository.consume(requireNotNull(storedToken.id), storedToken.tokenHash) != 1) {
-            throw AuthException(AuthErrorCode.INVALID_TOKEN, HttpStatus.UNAUTHORIZED, "이미 사용되었거나 폐기된 refresh token입니다.")
+            throw AuthException(AuthErrorCode.INVALID_TOKEN, HttpStatus.UNAUTHORIZED, "error.auth.refresh-token-revoked")
         }
         return issueAndStoreTokenPair(claims.serviceUserId)
     }
@@ -175,7 +180,7 @@ class AuthService(
     private fun validateImageExists(imageId: Long) {
         if (ServiceUser.isPresetProfileImage(imageId)) return
         if (imageService.findImageOrNull(imageId) == null) {
-            throw AuthException(AuthErrorCode.VALIDATION_ERROR, HttpStatus.BAD_REQUEST, "존재하지 않는 이미지입니다.")
+            throw AuthException(AuthErrorCode.VALIDATION_ERROR, HttpStatus.BAD_REQUEST, "error.image.not-found")
         }
     }
 

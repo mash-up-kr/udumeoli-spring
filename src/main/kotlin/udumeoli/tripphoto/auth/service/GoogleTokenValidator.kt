@@ -42,7 +42,7 @@ class GoogleTokenValidator(
                 ?: throw AuthException(
                     AuthErrorCode.INVALID_TOKEN,
                     HttpStatus.UNAUTHORIZED,
-                    "Invalid Google ID token",
+                    "error.auth.google-token-invalid",
                 )
 
         val payload = googleIdToken.payload

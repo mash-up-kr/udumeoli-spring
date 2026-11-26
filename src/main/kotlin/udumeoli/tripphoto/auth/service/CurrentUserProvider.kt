@@ -14,5 +14,5 @@ class CurrentUserProvider {
             ?.takeIf { it.isAuthenticated }
             ?.name
             ?.toLongOrNull()
-            ?: throw GraphQlDomainException(GraphQlErrorCode.UNAUTHENTICATED, "로그인이 필요합니다.")
+            ?: throw GraphQlDomainException(GraphQlErrorCode.UNAUTHENTICATED, "error.login.required")
 }

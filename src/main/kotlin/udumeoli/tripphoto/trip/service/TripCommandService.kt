@@ -1,3 +1,5 @@
+@file:Suppress("LongParameterList")
+
 package udumeoli.tripphoto.trip.service
 
 import org.springframework.context.ApplicationEventPublisher
@@ -46,7 +48,8 @@ class TripCommandService(
         if (!regionRepository.existsByRegionCode(input.regionCode)) {
             throw GraphQlDomainException(
                 GraphQlErrorCode.REGION_NOT_FOUND,
-                "존재하지 않는 지역입니다: ${input.regionCode}",
+                "error.region.not-found",
+                arrayOf(input.regionCode),
             )
         }
 
@@ -79,7 +82,7 @@ class TripCommandService(
             tripRecordRepository.findByTripIdAndServiceUserId(tripId, currentUserId)
                 ?: throw GraphQlDomainException(
                     GraphQlErrorCode.TRIP_RECORD_NOT_FOUND,
-                    "삭제할 내 기록이 없습니다.",
+                    "error.trip.record-not-found",
                 )
         tripImageWriter.setImages(requireNotNull(record.id), emptyList())
         tripRecordRepository.delete(record)
@@ -132,7 +135,9 @@ class TripCommandService(
 
         // 기존 기록의 사진/코멘트 교체는 재호출이라 집계에서 제외한다 — 최초 완료만 TRIP_RECORDED다.
         if (existing == null) {
-            eventPublisher.publishEvent(KpiEventOccurred(type = KpiEventType.TRIP_RECORDED, serviceUserId = currentUserId))
+            eventPublisher.publishEvent(
+                KpiEventOccurred(type = KpiEventType.TRIP_RECORDED, serviceUserId = currentUserId),
+            )
         }
     }
 }

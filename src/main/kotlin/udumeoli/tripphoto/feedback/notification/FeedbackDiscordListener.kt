@@ -17,7 +17,7 @@ class FeedbackDiscordListener(
     private val discordProperties: DiscordProperties,
     private val discordNotifier: DiscordNotifier,
 ) {
-    @Async("feedbackDiscordExecutor")
+    @Async("discordNotificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     fun onFeedbackSubmitted(event: FeedbackSubmitted) {
         discordNotifier.sendEmbedTo(

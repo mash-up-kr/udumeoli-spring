@@ -45,6 +45,7 @@ class PartyJoinServiceTest {
                 userService = userService,
                 joinPartyRateLimiter = joinPartyRateLimiter,
                 partyQueryService = partyQueryService,
+                reusableInvitePartyService = mockk(relaxed = true),
             )
     }
 

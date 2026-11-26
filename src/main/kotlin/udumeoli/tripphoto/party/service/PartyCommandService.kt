@@ -118,20 +118,26 @@ class PartyCommandService(
             }
         partyQueryService.requireMember(partyId, currentUserId)
 
-        if (party.isOwner(currentUserId)) {
-            val successorId = partyQueryService.memberUserIdsInJoinOrder(partyId).firstOrNull { it != currentUserId }
-            if (successorId == null) {
-                return deleteParty(currentUserId, partyId)
+        if (party.isInvitedCopyFor(currentUserId)) {
+            deleteAllTripData(partyId)
+            partyMemberRepository.deleteAll(partyMemberRepository.findAllByPartyId(partyId))
+            partyRepository.delete(party)
+        } else {
+            if (party.isOwner(currentUserId)) {
+                val successorId = partyQueryService.memberUserIdsInJoinOrder(partyId).firstOrNull { it != currentUserId }
+                if (successorId == null) {
+                    return deleteParty(currentUserId, partyId)
+                }
+                saveParty(party.copy(ownerId = successorId))
             }
-            saveParty(party.copy(ownerId = successorId))
+
+            deleteMemberTripData(partyId, currentUserId)
+
+            val member =
+                partyMemberRepository.findByPartyIdAndServiceUserId(partyId, currentUserId)
+                    ?: throw GraphQlDomainException(GraphQlErrorCode.MEMBER_NOT_FOUND, "error.party.member-not-found")
+            partyMemberRepository.delete(member)
         }
-
-        deleteMemberTripData(partyId, currentUserId)
-
-        val member =
-            partyMemberRepository.findByPartyIdAndServiceUserId(partyId, currentUserId)
-                ?: throw GraphQlDomainException(GraphQlErrorCode.MEMBER_NOT_FOUND, "error.party.member-not-found")
-        partyMemberRepository.delete(member)
         return partyId
     }
 

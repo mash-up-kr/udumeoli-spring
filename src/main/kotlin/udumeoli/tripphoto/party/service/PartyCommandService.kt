@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import udumeoli.tripphoto.common.graphql.GraphQlDomainException
 import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
+import udumeoli.tripphoto.common.i18n.MessageKeys
 import udumeoli.tripphoto.image.service.ImageService
 import udumeoli.tripphoto.party.dto.PartyPayload
 import udumeoli.tripphoto.party.entity.Party
@@ -46,7 +47,7 @@ class PartyCommandService(
             saveParty(
                 Party(
                     partyName = name,
-                    inviteCode = inviteCodeIssuer.issue(),
+                    inviteCode = inviteCodeIssuer.issue().value,
                     ownerId = currentUserId,
                 ),
             )
@@ -98,7 +99,7 @@ class PartyCommandService(
             }
         requireOwner(party, currentUserId)
 
-        val savedParty = saveParty(party.copy(inviteCode = inviteCodeIssuer.issue()))
+        val savedParty = saveParty(party.copy(inviteCode = inviteCodeIssuer.issue().value))
         return partyQueryService.toPayload(savedParty)
     }
 
@@ -257,7 +258,7 @@ class PartyCommandService(
         } catch (_: DuplicateKeyException) {
             throw GraphQlDomainException(
                 GraphQlErrorCode.INVITE_CODE_CONFLICT,
-                "error.invite.conflict",
+                MessageKeys.Invite.CONFLICT,
             )
         }
 }

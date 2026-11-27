@@ -130,6 +130,9 @@ type Mutation {
     """
     joinParty(inviteCode: String!): Party!
 
+    "초대코드의 팟을 복사해 별도 팟을 만들고 내가 참여한다. 복사 횟수와 원본 정원에는 제한이 없다."
+    copyParty(inviteCode: String!): Party!
+
     """
     초대코드 재발급 (owner 전용). 기존 코드는 즉시 무효화되고, 새 6자리 코드가 반영된 Party를 반환한다.
     코드 발급 경합이 발생하면 INVITE_CODE_CONFLICT.

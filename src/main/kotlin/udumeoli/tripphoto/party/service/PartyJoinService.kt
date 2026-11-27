@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import udumeoli.tripphoto.common.graphql.GraphQlDomainException
 import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
+import udumeoli.tripphoto.common.i18n.MessageKeys
 import udumeoli.tripphoto.party.dto.PartyPayload
 import udumeoli.tripphoto.party.dto.PartyPreviewPayload
 import udumeoli.tripphoto.party.entity.Party
@@ -81,28 +82,21 @@ class PartyJoinService(
         inviteCode: String,
         findByInviteCode: (String) -> Party?,
     ): Party {
-        userService.getCurrentUser(currentUserId)
-        joinPartyRateLimiter.check(currentUserId)
-        validateInviteCode(inviteCode)
-
-        val party =
-            findByInviteCode(inviteCode)
-                ?: throw GraphQlDomainException(
-                    GraphQlErrorCode.INVALID_INVITE_CODE,
-                    "error.invite.not-found",
-                )
-
+        val party = resolveInvitedParty(currentUserId, inviteCode, findByInviteCode)
         rejectIfAlreadyJoined(requireNotNull(party.id), currentUserId)
         return party
     }
 
-    private fun validateInviteCode(inviteCode: String) {
-        if (inviteCode.length != INVITE_CODE_LENGTH || inviteCode.any { !it.isLetterOrDigit() }) {
-            throw GraphQlDomainException(
-                GraphQlErrorCode.INVALID_INVITE_CODE,
-                "error.invite.invalid-format",
-            )
-        }
+    private fun resolveInvitedParty(
+        currentUserId: Long,
+        inviteCode: String,
+        findByInviteCode: (String) -> Party?,
+    ): Party {
+        userService.getCurrentUser(currentUserId)
+        joinPartyRateLimiter.check(currentUserId)
+        val code = InviteCode.parse(inviteCode)
+        return findByInviteCode(code.value)
+            ?: throw GraphQlDomainException(GraphQlErrorCode.INVALID_INVITE_CODE, MessageKeys.Invite.NOT_FOUND)
     }
 
     private fun rejectIfAlreadyJoined(
@@ -129,6 +123,5 @@ class PartyJoinService(
 
     companion object {
         const val MAX_PARTY_MEMBERS = 6L
-        private const val INVITE_CODE_LENGTH = 6
     }
 }

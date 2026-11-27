@@ -8,7 +8,6 @@ import udumeoli.tripphoto.image.entity.Image
 import udumeoli.tripphoto.image.repository.ImageRepository
 import udumeoli.tripphoto.image.storage.S3StorageAdapter
 import udumeoli.tripphoto.image.thumbnail.HttpThumbnailAdapter
-import udumeoli.tripphoto.trip.repository.TripImageRepository
 import java.util.UUID
 import kotlin.jvm.optionals.getOrNull
 
@@ -18,7 +17,6 @@ class ImageService(
     private val storageAdapter: S3StorageAdapter,
     private val thumbnailAdapter: HttpThumbnailAdapter,
     private val kmsService: KmsService,
-    private val tripImageRepository: TripImageRepository,
 ) {
     fun createUploadUrl(
         uploaderId: Long?,
@@ -82,9 +80,7 @@ class ImageService(
         if (imageIds.isEmpty()) {
             return
         }
-        // Campaign copies and ordinary records may share an image; keep it while any record still links to it.
-        val referencedIds = tripImageRepository.findAllByImageIdIn(imageIds).mapTo(mutableSetOf()) { it.imageId }
-        imageRepository.deleteAllById(imageIds.filterNot(referencedIds::contains))
+        imageRepository.deleteAllById(imageIds)
     }
 
     /** 특정 유저가 업로드한 이미지를 모두 삭제한다. 계정 탈퇴 시, 팟 데이터 정리와 별개로 남은 업로드(프로필 사진 등)를 정리하는 용도. */

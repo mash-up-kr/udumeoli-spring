@@ -4,8 +4,6 @@ import org.springframework.data.repository.ListCrudRepository
 import udumeoli.tripphoto.trip.entity.TripImage
 
 interface TripImageRepository : ListCrudRepository<TripImage, Long> {
-    fun findAllByImageIdIn(imageIds: Collection<Long>): List<TripImage>
-
     fun findAllByTripRecordId(tripRecordId: Long): List<TripImage>
 
     fun findAllByTripRecordIdIn(tripRecordIds: Collection<Long>): List<TripImage>

@@ -6,5 +6,4 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 data class DiscordProperties(
     val webhookUrl: String = "",
     val feedbackWebhookUrl: String = "",
-    val campaignWebhookUrl: String = "",
 )

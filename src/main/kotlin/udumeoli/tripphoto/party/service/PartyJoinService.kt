@@ -24,7 +24,6 @@ class PartyJoinService(
     private val userService: UserService,
     private val joinPartyRateLimiter: JoinPartyRateLimiter,
     private val partyQueryService: PartyQueryService,
-    private val reusableInvitePartyService: ReusableInvitePartyService,
 ) {
     @Transactional
     fun joinParty(
@@ -36,17 +35,6 @@ class PartyJoinService(
         val partyId = requireNotNull(party.id)
 
         requirePartyCapacity(partyMemberRepository.countByPartyId(partyId))
-
-        if (party.isReusableTemplate()) {
-            rejectIfAlreadyJoinedCampaign(partyId, currentUserId)
-            return partyQueryService.toPayload(
-                reusableInvitePartyService.createForFan(
-                    party,
-                    currentUserId,
-                    userService.getCurrentUser(currentUserId).nickname,
-                ),
-            )
-        }
 
         partyMemberRepository.save(PartyMember(partyId = partyId, serviceUserId = currentUserId))
         return partyQueryService.toPayload(party)
@@ -61,9 +49,6 @@ class PartyJoinService(
 
         val memberUserIds = partyQueryService.memberUserIdsInJoinOrder(requireNotNull(party.id))
         requirePartyCapacity(memberUserIds.size.toLong())
-        if (party.isReusableTemplate()) {
-            rejectIfAlreadyJoinedCampaign(requireNotNull(party.id), currentUserId)
-        }
 
         val usersById = userService.findAllById(memberUserIds).associateBy { requireNotNull(it.id) }
         return PartyPreviewPayload(
@@ -125,18 +110,6 @@ class PartyJoinService(
         currentUserId: Long,
     ) {
         if (partyMemberRepository.existsByPartyIdAndServiceUserId(partyId, currentUserId)) {
-            throw GraphQlDomainException(
-                GraphQlErrorCode.ALREADY_JOINED_PARTY,
-                "error.party.already-joined",
-            )
-        }
-    }
-
-    private fun rejectIfAlreadyJoinedCampaign(
-        templateId: Long,
-        fanUserId: Long,
-    ) {
-        if (reusableInvitePartyService.alreadyJoined(templateId, fanUserId)) {
             throw GraphQlDomainException(
                 GraphQlErrorCode.ALREADY_JOINED_PARTY,
                 "error.party.already-joined",

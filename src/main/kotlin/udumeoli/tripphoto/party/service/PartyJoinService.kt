@@ -1,6 +1,5 @@
 package udumeoli.tripphoto.party.service
 
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import udumeoli.tripphoto.common.graphql.GraphQlDomainException
@@ -27,15 +26,7 @@ class PartyJoinService(
     private val joinPartyRateLimiter: JoinPartyRateLimiter,
     private val partyQueryService: PartyQueryService,
     private val partyCopyService: PartyCopyService,
-    @Value("\${CAMPAIGN_COPY_SOURCE_PARTY_IDS:}") copySourcePartyIds: String = "",
 ) {
-    private val copySourcePartyIds =
-        copySourcePartyIds
-            .split(',')
-            .filter { it.isNotBlank() }
-            .map { it.trim().toLong() }
-            .toSet()
-
     @Transactional
     fun joinParty(
         currentUserId: Long,
@@ -44,7 +35,7 @@ class PartyJoinService(
         // 정원 초과 동시 참여를 막으려면 검사부터 저장까지 팟 행을 잠근 채로 진행해야 한다
         val party = resolveInvitedParty(currentUserId, inviteCode, partyRepository::findByInviteCodeForUpdate)
         val partyId = requireNotNull(party.id)
-        if (partyId in copySourcePartyIds) {
+        if (partyCopyService.isCampaignSource(partyId)) {
             return partyCopyService.copyParty(currentUserId, inviteCode)
         }
 

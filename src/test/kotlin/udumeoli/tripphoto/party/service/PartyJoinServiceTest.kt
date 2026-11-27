@@ -39,6 +39,7 @@ class PartyJoinServiceTest {
         userService = mockk()
         joinPartyRateLimiter = mockk()
         partyCopyService = mockk()
+        every { partyCopyService.isCampaignSource(any()) } returns false
 
         val partyQueryService = PartyQueryService(partyRepository, partyMemberRepository, userService)
         partyJoinService =
@@ -64,12 +65,12 @@ class PartyJoinServiceTest {
                 joinPartyRateLimiter = joinPartyRateLimiter,
                 partyQueryService = PartyQueryService(partyRepository, partyMemberRepository, userService),
                 partyCopyService = partyCopyService,
-                copySourcePartyIds = "10, 11",
             )
 
         every { userService.getCurrentUser(7L) } returns member
         every { joinPartyRateLimiter.check(7L) } just Runs
         every { partyRepository.findByInviteCodeForUpdate("abc123") } returns party()
+        every { partyCopyService.isCampaignSource(10L) } returns true
         every { partyCopyService.copyParty(7L, "abc123") } returns copied
 
         assertThat(service.joinParty(7L, "abc123")).isSameAs(copied)

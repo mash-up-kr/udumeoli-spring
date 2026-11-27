@@ -96,6 +96,8 @@ discord:
   webhook-url: "${DISCORD_KPI_WEBHOOK_URL:}"
   # 새 서비스 피드백 알림용 웹훅. KPI 알림 및 로그 알림과 분리한다.
   feedback-webhook-url: "${DISCORD_FEEDBACK_WEBHOOK_URL:}"
+  # 팬 코스 참여 알림. 비워두면 기존 KPI 웹훅을 사용한다.
+  campaign-webhook-url: "${DISCORD_CAMPAIGN_WEBHOOK_URL:}"
 
 logging:
   file:

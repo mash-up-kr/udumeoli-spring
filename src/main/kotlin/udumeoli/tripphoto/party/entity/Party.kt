@@ -16,10 +16,20 @@ data class Party(
     val inviteCode: String,
     @Column("owner_id")
     val ownerId: Long,
+    @Column("source_party_id")
+    val sourcePartyId: Long? = null,
+    @Column("invited_user_id")
+    val invitedUserId: Long? = null,
+    @Column("reusable_invite_key")
+    val reusableInviteKey: String? = null,
     @Embedded.Empty(prefix = "")
     val auditMetadata: AuditMetadata = AuditMetadata(),
 ) {
     fun isOwner(userId: Long): Boolean = ownerId == userId
+
+    fun isReusableTemplate(): Boolean = reusableInviteKey != null
+
+    fun isInvitedCopyFor(userId: Long): Boolean = sourcePartyId != null && invitedUserId == userId
 
     fun canKick(targetUserId: Long): Boolean = !isOwner(targetUserId)
 }

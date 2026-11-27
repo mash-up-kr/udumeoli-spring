@@ -1,9 +1,11 @@
 package udumeoli.tripphoto.party.service
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import udumeoli.tripphoto.common.graphql.GraphQlDomainException
 import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
+import udumeoli.tripphoto.common.i18n.MessageKeys
 import udumeoli.tripphoto.party.dto.PartyPayload
 import udumeoli.tripphoto.party.dto.PartyPreviewPayload
 import udumeoli.tripphoto.party.entity.Party
@@ -24,15 +26,29 @@ class PartyJoinService(
     private val userService: UserService,
     private val joinPartyRateLimiter: JoinPartyRateLimiter,
     private val partyQueryService: PartyQueryService,
+    private val partyCopyService: PartyCopyService,
+    @Value("\${CAMPAIGN_COPY_SOURCE_PARTY_IDS:}") copySourcePartyIds: String = "",
 ) {
+    private val copySourcePartyIds =
+        copySourcePartyIds
+            .split(',')
+            .filter { it.isNotBlank() }
+            .map { it.trim().toLong() }
+            .toSet()
+
     @Transactional
     fun joinParty(
         currentUserId: Long,
         inviteCode: String,
     ): PartyPayload {
         // 정원 초과 동시 참여를 막으려면 검사부터 저장까지 팟 행을 잠근 채로 진행해야 한다
-        val party = resolveJoinableParty(currentUserId, inviteCode, partyRepository::findByInviteCodeForUpdate)
+        val party = resolveInvitedParty(currentUserId, inviteCode, partyRepository::findByInviteCodeForUpdate)
         val partyId = requireNotNull(party.id)
+        if (partyId in copySourcePartyIds) {
+            return partyCopyService.copyParty(currentUserId, inviteCode)
+        }
+
+        rejectIfAlreadyJoined(partyId, currentUserId)
 
         requirePartyCapacity(partyMemberRepository.countByPartyId(partyId))
 
@@ -65,7 +81,7 @@ class PartyJoinService(
      * 2. 요청이 너무 잦지 않은가 — 초대코드 무차별 대입 차단
      * 3. 코드가 영문·숫자 6자리인가
      * 4. 그 코드의 팟이 있는가
-     * 5. 이미 참여 중인 팟은 아닌가
+     * 5. 일반 팟에 이미 참여 중인가 (복사 원본은 매번 별도 팟으로 복사하므로 예외)
      *
      * 형식 검사(3)를 조회(4)보다 먼저 하는 건, 형식부터 틀린 코드로는 DB를 건드리지 않기 위해서다.
      *
@@ -81,28 +97,21 @@ class PartyJoinService(
         inviteCode: String,
         findByInviteCode: (String) -> Party?,
     ): Party {
-        userService.getCurrentUser(currentUserId)
-        joinPartyRateLimiter.check(currentUserId)
-        validateInviteCode(inviteCode)
-
-        val party =
-            findByInviteCode(inviteCode)
-                ?: throw GraphQlDomainException(
-                    GraphQlErrorCode.INVALID_INVITE_CODE,
-                    "error.invite.not-found",
-                )
-
+        val party = resolveInvitedParty(currentUserId, inviteCode, findByInviteCode)
         rejectIfAlreadyJoined(requireNotNull(party.id), currentUserId)
         return party
     }
 
-    private fun validateInviteCode(inviteCode: String) {
-        if (inviteCode.length != INVITE_CODE_LENGTH || inviteCode.any { !it.isLetterOrDigit() }) {
-            throw GraphQlDomainException(
-                GraphQlErrorCode.INVALID_INVITE_CODE,
-                "error.invite.invalid-format",
-            )
-        }
+    private fun resolveInvitedParty(
+        currentUserId: Long,
+        inviteCode: String,
+        findByInviteCode: (String) -> Party?,
+    ): Party {
+        userService.getCurrentUser(currentUserId)
+        joinPartyRateLimiter.check(currentUserId)
+        val code = InviteCode.parse(inviteCode)
+        return findByInviteCode(code.value)
+            ?: throw GraphQlDomainException(GraphQlErrorCode.INVALID_INVITE_CODE, MessageKeys.Invite.NOT_FOUND)
     }
 
     private fun rejectIfAlreadyJoined(
@@ -129,6 +138,5 @@ class PartyJoinService(
 
     companion object {
         const val MAX_PARTY_MEMBERS = 6L
-        private const val INVITE_CODE_LENGTH = 6
     }
 }

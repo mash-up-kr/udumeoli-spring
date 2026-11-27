@@ -1,4 +1,4 @@
-package udumeoli.tripphoto.feedback.notification
+package udumeoli.tripphoto.kpi.notification
 
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
@@ -6,23 +6,39 @@ import org.springframework.transaction.event.TransactionPhase
 import org.springframework.transaction.event.TransactionalEventListener
 import udumeoli.tripphoto.feedback.entity.Feedback
 import udumeoli.tripphoto.feedback.event.FeedbackSubmitted
-import udumeoli.tripphoto.kpi.notification.DiscordEmbed
-import udumeoli.tripphoto.kpi.notification.DiscordEmbedField
-import udumeoli.tripphoto.kpi.notification.DiscordEmbedFooter
-import udumeoli.tripphoto.kpi.notification.DiscordNotifier
-import udumeoli.tripphoto.kpi.notification.DiscordProperties
+import udumeoli.tripphoto.party.event.PartyCopied
 
 @Component
-class FeedbackDiscordListener(
+class DiscordNotificationListener(
     private val discordProperties: DiscordProperties,
     private val discordNotifier: DiscordNotifier,
 ) {
-    @Async("feedbackDiscordExecutor")
+    @Async("discordNotificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     fun onFeedbackSubmitted(event: FeedbackSubmitted) {
         discordNotifier.sendEmbedTo(
             discordProperties.feedbackWebhookUrl,
             createEmbed(event.feedback),
+        )
+    }
+
+    @Async("discordNotificationExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    fun onPartyCopied(event: PartyCopied) {
+        discordNotifier.sendEmbedTo(
+            discordProperties.partyCopyWebhookUrl.ifBlank { discordProperties.webhookUrl },
+            DiscordEmbed(
+                title = "🎟️ 팟 복사 참여",
+                description = event.partyName,
+                color = PARTY_COPY_COLOR,
+                fields =
+                    listOf(
+                        DiscordEmbedField("참여자", "${event.copiedByNickname} (#${event.copiedByUserId})", true),
+                        DiscordEmbedField("새 팟", "#${event.copiedPartyId}", true),
+                        DiscordEmbedField("원본 팟", "#${event.sourcePartyId}", true),
+                    ),
+                footer = DiscordEmbedFooter("복사 완료 · ${event.copiedAt}"),
+            ),
         )
     }
 
@@ -64,5 +80,6 @@ class FeedbackDiscordListener(
     private companion object {
         const val MAX_CONTENT_LENGTH = 4_000
         const val EMBED_COLOR = 0x5865F2
+        const val PARTY_COPY_COLOR = 0xEB459E
     }
 }

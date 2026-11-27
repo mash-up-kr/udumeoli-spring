@@ -4,6 +4,7 @@ import com.github.benmanes.caffeine.cache.Caffeine
 import org.springframework.stereotype.Component
 import udumeoli.tripphoto.common.graphql.GraphQlDomainException
 import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
+import udumeoli.tripphoto.common.i18n.MessageKeys
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -21,7 +22,7 @@ class JoinPartyRateLimiter {
         if (count > MAX_ATTEMPTS_PER_WINDOW) {
             throw GraphQlDomainException(
                 GraphQlErrorCode.RATE_LIMITED,
-                "error.invite.rate-limited",
+                MessageKeys.Invite.RATE_LIMITED,
             )
         }
     }

@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test
 import udumeoli.tripphoto.common.entity.AuditMetadata
 import udumeoli.tripphoto.common.graphql.GraphQlDomainException
 import udumeoli.tripphoto.common.graphql.GraphQlErrorCode
+import udumeoli.tripphoto.party.dto.PartyPayload
 import udumeoli.tripphoto.party.entity.Party
 import udumeoli.tripphoto.party.entity.PartyMember
 import udumeoli.tripphoto.party.repository.PartyMemberRepository
@@ -26,6 +27,7 @@ class PartyJoinServiceTest {
     private lateinit var partyMemberRepository: PartyMemberRepository
     private lateinit var userService: UserService
     private lateinit var joinPartyRateLimiter: JoinPartyRateLimiter
+    private lateinit var partyCopyService: PartyCopyService
     private lateinit var partyJoinService: PartyJoinService
 
     private val now = LocalDateTime.of(2026, 7, 17, 16, 30)
@@ -36,6 +38,7 @@ class PartyJoinServiceTest {
         partyMemberRepository = mockk()
         userService = mockk()
         joinPartyRateLimiter = mockk()
+        partyCopyService = mockk()
 
         val partyQueryService = PartyQueryService(partyRepository, partyMemberRepository, userService)
         partyJoinService =
@@ -45,7 +48,33 @@ class PartyJoinServiceTest {
                 userService = userService,
                 joinPartyRateLimiter = joinPartyRateLimiter,
                 partyQueryService = partyQueryService,
+                partyCopyService = partyCopyService,
             )
+    }
+
+    @Test
+    fun `설정된 원본 팟의 일반 초대는 참여 대신 복사한다`() {
+        val member = user(7, "팬")
+        val copied = mockk<PartyPayload>()
+        val service =
+            PartyJoinService(
+                partyRepository = partyRepository,
+                partyMemberRepository = partyMemberRepository,
+                userService = userService,
+                joinPartyRateLimiter = joinPartyRateLimiter,
+                partyQueryService = PartyQueryService(partyRepository, partyMemberRepository, userService),
+                partyCopyService = partyCopyService,
+                copySourcePartyIds = "10, 11",
+            )
+
+        every { userService.getCurrentUser(7L) } returns member
+        every { joinPartyRateLimiter.check(7L) } just Runs
+        every { partyRepository.findByInviteCodeForUpdate("abc123") } returns party()
+        every { partyCopyService.copyParty(7L, "abc123") } returns copied
+
+        assertThat(service.joinParty(7L, "abc123")).isSameAs(copied)
+        verify(exactly = 1) { partyCopyService.copyParty(7L, "abc123") }
+        verify(exactly = 0) { partyMemberRepository.save(any<PartyMember>()) }
     }
 
     @Test

@@ -9,14 +9,17 @@ import udumeoli.tripphoto.party.dto.KickMemberInput
 import udumeoli.tripphoto.party.dto.PartyPayload
 import udumeoli.tripphoto.party.dto.PartyPreviewPayload
 import udumeoli.tripphoto.party.service.PartyCommandService
+import udumeoli.tripphoto.party.service.PartyCopyService
 import udumeoli.tripphoto.party.service.PartyJoinService
 import udumeoli.tripphoto.party.service.PartyQueryService
 
 @Controller
+@Suppress("TooManyFunctions")
 class PartyGraphQlController(
     private val partyQueryService: PartyQueryService,
     private val partyCommandService: PartyCommandService,
     private val partyJoinService: PartyJoinService,
+    private val partyCopyService: PartyCopyService,
 ) {
     @QueryMapping
     fun myParties(
@@ -53,6 +56,12 @@ class PartyGraphQlController(
         @LoginUser currentUserId: Long,
         @Argument inviteCode: String,
     ): PartyPayload = partyJoinService.joinParty(currentUserId, inviteCode)
+
+    @MutationMapping
+    fun copyParty(
+        @LoginUser currentUserId: Long,
+        @Argument inviteCode: String,
+    ): PartyPayload = partyCopyService.copyParty(currentUserId, inviteCode)
 
     @MutationMapping
     fun regenerateInviteCode(

@@ -123,12 +123,16 @@ type Mutation {
     renameParty(partyId: ID!, name: String!): Party!
 
     """
-    초대코드로 팟 참여.
+    초대코드로 팟 참여. CAMPAIGN_COPY_SOURCE_PARTY_IDS에 지정된 원본 팟은
+    기존 초대 화면을 통과한 뒤 별도 팟으로 복사하고, 그 외 팟은 직접 참여한다.
     코드가 틀리면 INVALID_INVITE_CODE, 이미 멤버면 ALREADY_JOINED_PARTY.
     최대 인원 6명을 초과하면 PARTY_FULL.
     무차별 대입 방지를 위해 서버 rate limit 적용 — 초과 시 RATE_LIMITED.
     """
     joinParty(inviteCode: String!): Party!
+
+    "초대코드의 팟을 복사해 별도 팟을 만들고 내가 참여한다. 복사 횟수와 원본 정원에는 제한이 없다."
+    copyParty(inviteCode: String!): Party!
 
     """
     초대코드 재발급 (owner 전용). 기존 코드는 즉시 무효화되고, 새 6자리 코드가 반영된 Party를 반환한다.

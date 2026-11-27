@@ -20,6 +20,7 @@ class ApplicationNativeHints : RuntimeHintsRegistrar {
         registerJjwtHints(hints, classLoader)
         registerGoogleIdTokenHints(hints)
         registerRemoteConfigHints(hints, classLoader)
+        registerKotlinCollectionsHints(hints, classLoader)
     }
 
     /**
@@ -147,6 +148,35 @@ class ApplicationNativeHints : RuntimeHintsRegistrar {
             MemberCategory.INVOKE_PUBLIC_METHODS,
         )
         type.declaredClasses.forEach { registerRemoteConfigType(hints, it) }
+    }
+
+    /**
+     * Jackson이 Kotlin emptyList()/emptySet()/emptyMap()을 직렬화할 때 kotlin-reflect가
+     * stdlib 내부 싱글톤 클래스와 Kotlin 메타데이터(.kotlin_module, .kotlin_builtins)를 조회한다.
+     */
+    private fun registerKotlinCollectionsHints(
+        hints: RuntimeHints,
+        classLoader: ClassLoader?,
+    ) {
+        val categories =
+            arrayOf(
+                MemberCategory.INVOKE_PUBLIC_METHODS,
+                MemberCategory.INVOKE_DECLARED_METHODS,
+                MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
+                MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
+                MemberCategory.PUBLIC_FIELDS,
+                MemberCategory.DECLARED_FIELDS,
+            )
+        listOf(
+            "kotlin.collections.EmptyList",
+            "kotlin.collections.EmptySet",
+            "kotlin.collections.EmptyMap",
+            "kotlin.Metadata",
+        ).forEach { type ->
+            hints.reflection().registerTypeIfPresent(classLoader, type, *categories)
+        }
+        hints.resources().registerPattern("META-INF/*.kotlin_module")
+        hints.resources().registerPattern("kotlin/**/*.kotlin_builtins")
     }
 }
 

@@ -50,6 +50,8 @@ services:
       # 서비스 피드백 디스코드 웹훅
       DISCORD_FEEDBACK_WEBHOOK_URL: ${DISCORD_FEEDBACK_WEBHOOK_URL:-}
       DISCORD_PARTY_COPY_WEBHOOK_URL: ${DISCORD_PARTY_COPY_WEBHOOK_URL:-}
+      # 운영의 두 팬 코스 원본 팟만 일반 초대 흐름에서 별도 팟으로 복사
+      CAMPAIGN_COPY_SOURCE_PARTY_IDS: ${CAMPAIGN_COPY_SOURCE_PARTY_IDS:-}
       # Security
       KMS_MASTER_KEY: ${KMS_MASTER_KEY}
       API_BASE_URL: ${API_BASE_URL}

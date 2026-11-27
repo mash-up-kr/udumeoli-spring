@@ -2,6 +2,7 @@
 
 package udumeoli.tripphoto.party.service
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.stereotype.Service
@@ -35,7 +36,17 @@ class PartyCopyService(
     private val tripRecordRepository: TripRecordRepository,
     private val tripImageRepository: TripImageRepository,
     private val eventPublisher: ApplicationEventPublisher,
+    @Value("\${CAMPAIGN_COPY_SOURCE_PARTY_IDS:}") copySourcePartyIds: String = "",
 ) {
+    private val copySourcePartyIds =
+        copySourcePartyIds
+            .split(',')
+            .filter { it.isNotBlank() }
+            .map { it.trim().toLong() }
+            .toSet()
+
+    fun isCampaignSource(partyId: Long): Boolean = partyId in copySourcePartyIds
+
     @Transactional
     fun copyParty(
         copiedByUserId: Long,

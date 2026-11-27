@@ -25,6 +25,7 @@ class PartyJoinService(
     private val userService: UserService,
     private val joinPartyRateLimiter: JoinPartyRateLimiter,
     private val partyQueryService: PartyQueryService,
+    private val partyCopyService: PartyCopyService,
 ) {
     @Transactional
     fun joinParty(
@@ -32,8 +33,13 @@ class PartyJoinService(
         inviteCode: String,
     ): PartyPayload {
         // 정원 초과 동시 참여를 막으려면 검사부터 저장까지 팟 행을 잠근 채로 진행해야 한다
-        val party = resolveJoinableParty(currentUserId, inviteCode, partyRepository::findByInviteCodeForUpdate)
+        val party = resolveInvitedParty(currentUserId, inviteCode, partyRepository::findByInviteCodeForUpdate)
         val partyId = requireNotNull(party.id)
+        if (partyCopyService.isCampaignSource(partyId)) {
+            return partyCopyService.copyParty(currentUserId, inviteCode)
+        }
+
+        rejectIfAlreadyJoined(partyId, currentUserId)
 
         requirePartyCapacity(partyMemberRepository.countByPartyId(partyId))
 
@@ -66,7 +72,7 @@ class PartyJoinService(
      * 2. 요청이 너무 잦지 않은가 — 초대코드 무차별 대입 차단
      * 3. 코드가 영문·숫자 6자리인가
      * 4. 그 코드의 팟이 있는가
-     * 5. 이미 참여 중인 팟은 아닌가
+     * 5. 일반 팟에 이미 참여 중인가 (복사 원본은 매번 별도 팟으로 복사하므로 예외)
      *
      * 형식 검사(3)를 조회(4)보다 먼저 하는 건, 형식부터 틀린 코드로는 DB를 건드리지 않기 위해서다.
      *
